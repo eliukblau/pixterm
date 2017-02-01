@@ -1,0 +1,24 @@
+hash: ab7ba2f305bb07c92cf1173a1a40276aa0cb93c651119e3b0a97c4242c065043
+updated: 2017-01-30T05:09:50.313721179-03:00
+imports:
+- name: github.com/disintegration/imaging
+  version: 243d2d8673c1225a6afceeb9b3b4423d485dc8df
+- name: golang.org/x/crypto
+  version: 854ae91cdcbf914b499b1d7641d07859f3653481
+  subpackages:
+  - ssh/terminal
+- name: golang.org/x/image
+  version: 83686c547965220f8b5d75e83ddc67d73420a89f
+  subpackages:
+  - bmp
+  - riff
+  - tiff
+  - tiff/lzw
+  - vp8
+  - vp8l
+  - webp
+- name: golang.org/x/sys
+  version: d75a52659825e75fff6158388dddc6a5b04f9ba5
+  subpackages:
+  - unix
+testImports: []
