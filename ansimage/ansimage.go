@@ -15,6 +15,8 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
+	"image/draw"
 	_ "image/gif"  // initialize decoder
 	_ "image/jpeg" // initialize decoder
 	_ "image/png"  // initialize decoder
@@ -43,6 +45,12 @@ const (
 )
 
 var (
+	MatteColorTransparent = MatteColor(color.Transparent)
+	MatteColorBlack       = MatteColor(color.Black)
+	MatteColorWhite       = MatteColor(color.White)
+)
+
+var (
 	// ErrOddHeight happens when ANSImage height is not even value
 	ErrOddHeight = errors.New("ANSImage: height must be even value")
 
@@ -55,6 +63,9 @@ var (
 
 // scaleMode type is used for image scale mode constants
 type scaleMode uint8
+
+// MatteColor determines the fill-color of the underlying (background) image
+type MatteColor color.Color
 
 // ANSIpixel represents a pixel of an ANSImage
 type ANSIpixel struct {
@@ -223,17 +234,17 @@ func New(h, w int) (*ANSImage, error) {
 }
 
 // NewFromReader creates a new ANSImage from an io.Reader
-func NewFromReader(reader io.Reader) (*ANSImage, error) {
+func NewFromReader(mm MatteColor, reader io.Reader) (*ANSImage, error) {
 	image, _, err := image.Decode(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	return createANSImage(image)
+	return createANSImage(image, mm)
 }
 
 // NewScaledFromReader creates a new scaled ANSImage from an io.Reader
-func NewScaledFromReader(y, x int, sm scaleMode, reader io.Reader) (*ANSImage, error) {
+func NewScaledFromReader(y, x int, sm scaleMode, mc MatteColor, reader io.Reader) (*ANSImage, error) {
 	image, _, err := image.Decode(reader)
 	if err != nil {
 		return nil, err
@@ -248,7 +259,7 @@ func NewScaledFromReader(y, x int, sm scaleMode, reader io.Reader) (*ANSImage, e
 		image = imaging.Fit(image, x, y, imaging.Lanczos)
 	}
 
-	return createANSImage(image)
+	return createANSImage(image, mc)
 }
 
 // NewFromFile creates a new ANSImage from a file
@@ -258,17 +269,22 @@ func NewFromFile(name string) (*ANSImage, error) {
 		return nil, err
 	}
 	defer reader.Close()
-	return NewFromReader(reader)
+	return NewFromReader(MatteColorTransparent, reader)
 }
 
 // NewScaledFromFile creates a new scaled ANSImage from a file
 func NewScaledFromFile(y, x int, sm scaleMode, name string) (*ANSImage, error) {
+	return NewScaledMatteFromFile(y, x, sm, MatteColorTransparent, name)
+}
+
+// NewScaledFromFile creates a new scaled ANSImage from a file
+func NewScaledMatteFromFile(y, x int, sm scaleMode, mc MatteColor, name string) (*ANSImage, error) {
 	reader, err := os.Open(name)
 	if err != nil {
 		return nil, err
 	}
 	defer reader.Close()
-	return NewScaledFromReader(y, x, sm, reader)
+	return NewScaledFromReader(y, x, sm, mc, reader)
 }
 
 // ClearTerminal clears current terminal buffer using ANSI escape code.
@@ -278,9 +294,21 @@ func ClearTerminal() {
 }
 
 // createANSImage loads data from an image and returns an ANSImage
-func createANSImage(image image.Image) (*ANSImage, error) {
-	yMin, xMin := image.Bounds().Min.Y, image.Bounds().Min.X
-	yMax, xMax := image.Bounds().Max.Y, image.Bounds().Max.X
+func createANSImage(img image.Image, mc MatteColor) (*ANSImage, error) {
+	bounds := img.Bounds()
+
+	// Skip compositing if no matte
+	if mc != MatteColorTransparent {
+		base := image.NewRGBA(bounds)
+		draw.Draw(base, bounds, &image.Uniform{mc}, image.ZP, draw.Src)
+		draw.Draw(base, bounds, img, image.ZP, draw.Over)
+
+		// Exchange our drawn-over-matte image with the original
+		img = base
+	}
+
+	yMin, xMin := bounds.Min.Y, bounds.Min.X
+	yMax, xMax := bounds.Max.Y, bounds.Max.X
 
 	if yMax%2 != 0 {
 		yMax-- // always even value!
@@ -293,7 +321,7 @@ func createANSImage(image image.Image) (*ANSImage, error) {
 
 	for y := yMin; y < yMax; y++ {
 		for x := xMin; x < xMax; x++ {
-			r, g, b, _ := image.At(x, y).RGBA()
+			r, g, b, _ := img.At(x, y).RGBA()
 			if err := ansimage.SetAt(y, x, r, g, b); err != nil {
 				return nil, err
 			}
