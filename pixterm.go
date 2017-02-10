@@ -41,6 +41,7 @@ var (
 	flagRows  uint
 	flagCols  uint
 	flagScale uint
+	flagMatte uint
 )
 
 func main() {
@@ -80,6 +81,7 @@ func configureFlags() {
 	flag.CommandLine.UintVar(&flagScale, "s", 0, "scale `method`:\n\t  0 - resize (default)\n\t  1 - fill\n\t  2 - fit")
 	flag.CommandLine.UintVar(&flagRows, "tr", 0, "terminal `rows` (optional, >=2)")
 	flag.CommandLine.UintVar(&flagCols, "tc", 0, "terminal `columns` (optional, >=2)")
+	flag.CommandLine.UintVar(&flagMatte, "m", 0, "`matte` color:\n\t  0 - black (default)\n\t  1 - white")
 
 	flag.CommandLine.Parse(os.Args[1:])
 }
@@ -97,6 +99,10 @@ func validateFlags() {
 		flag.CommandLine.Usage()
 		os.Exit(2)
 	}
+	if flagMatte != 0 && flagMatte != 1 {
+		flag.CommandLine.Usage()
+		os.Exit(2)
+	}
 }
 
 func checkTerminal() {
@@ -110,8 +116,11 @@ func getTerminalSize() (width, height int, err error) {
 }
 
 func runPixterm() {
-	var pix *ansimage.ANSImage
-	var err error
+	var (
+		pix *ansimage.ANSImage
+		mc  ansimage.MatteColor
+		err error
+	)
 
 	// get terminal size
 	tx, ty, err := getTerminalSize()
@@ -127,15 +136,21 @@ func runPixterm() {
 		tx = int(flagCols)
 	}
 
+	if flagMatte == 1 {
+		mc = ansimage.MatteColorWhite
+	} else {
+		mc = ansimage.MatteColorBlack
+	}
+
 	// set scale mode and create new ANSImage from file
 	file := flag.CommandLine.Arg(0)
 	switch flagScale {
 	case 0:
-		pix, err = ansimage.NewScaledFromFile(2*(ty-1), tx, ansimage.ScaleModeResize, file)
+		pix, err = ansimage.NewScaledMatteFromFile(2*(ty-1), tx, ansimage.ScaleModeResize, mc, file)
 	case 1:
-		pix, err = ansimage.NewScaledFromFile(2*(ty-1), tx, ansimage.ScaleModeFill, file)
+		pix, err = ansimage.NewScaledMatteFromFile(2*(ty-1), tx, ansimage.ScaleModeFill, mc, file)
 	case 2:
-		pix, err = ansimage.NewScaledFromFile(2*(ty-1), tx, ansimage.ScaleModeFit, file)
+		pix, err = ansimage.NewScaledMatteFromFile(2*(ty-1), tx, ansimage.ScaleModeFit, mc, file)
 	}
 	if err != nil {
 		throwError(1, err)
