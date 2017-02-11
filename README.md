@@ -2,7 +2,7 @@
    ___  _____  ____
   / _ \/  _/ |/_/ /____ ______ _    Made with love by Eliuk Blau
  / ___// /_>  </ __/ -_) __/  ' \   github.com/eliukblau/pixterm
-/_/  /___/_/|_|\__/\__/_/ /_/_/_/   v1.1.0
+/_/  /___/_/|_|\__/\__/_/ /_/_/_/   v1.1.1
 
 ```
 
@@ -74,4 +74,5 @@ Run this command to automatically download sources and install **`PIXterm`** bin
 
 #### Contributors
 
-- [disq](http://github.com/disq) - Original code for image transparency support.
+- [@disq](http://github.com/disq) - Original code for image transparency support.
+- [@timob](http://github.com/timob) - Fix for `ANSIpixel` type: use 8bit color component for output.

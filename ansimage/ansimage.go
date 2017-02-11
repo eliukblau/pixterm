@@ -60,7 +60,7 @@ type scaleMode uint8
 
 // ANSIpixel represents a pixel of an ANSImage.
 type ANSIpixel struct {
-	R, G, B uint32
+	R, G, B uint8
 	upper   bool
 }
 
@@ -108,7 +108,7 @@ func (ai *ANSImage) GetMaxProcs() int {
 }
 
 // SetAt sets ANSI-pixel color (RBG) in coordinates (y,x).
-func (ai *ANSImage) SetAt(y, x int, r, g, b uint32) error {
+func (ai *ANSImage) SetAt(y, x int, r, g, b uint8) error {
 	if y >= 0 && y < ai.h && x >= 0 && x < ai.w {
 		ai.pixmap[y][x].R = r
 		ai.pixmap[y][x].G = g
@@ -207,17 +207,17 @@ func New(h, w int) (*ANSImage, error) {
 		h: h, w: w,
 		maxprocs: 1,
 		pixmap: func() [][]*ANSIpixel {
-			aux := make([][]*ANSIpixel, h)
+			v := make([][]*ANSIpixel, h)
 			for y := 0; y < h; y++ {
-				aux[y] = make([]*ANSIpixel, w)
+				v[y] = make([]*ANSIpixel, w)
 				for x := 0; x < w; x++ {
-					aux[y][x] = &ANSIpixel{
+					v[y][x] = &ANSIpixel{
 						R: 0, G: 0, B: 0,
 						upper: (y%2 == 0),
 					}
 				}
 			}
-			return aux
+			return v
 		}(),
 	}
 
@@ -286,15 +286,22 @@ func ClearTerminal() {
 // createANSImage loads data from an image and returns an ANSImage.
 // Background color is used to fill when image has transparency.
 func createANSImage(bg color.Color, img image.Image) (*ANSImage, error) {
+	var rgbaOut *image.RGBA
 	bounds := img.Bounds()
 
-	// do compositing only if background color has no transparency (thank you disq for the idea!)
+	// do compositing only if background color has no transparency (thank you @disq for the idea!)
 	// (info - http://stackoverflow.com/questions/36595687/transparent-pixel-color-go-lang-image)
 	if _, _, _, a := bg.RGBA(); a >= 0xffff {
-		canvas := image.NewRGBA(bounds)
-		draw.Draw(canvas, bounds, image.NewUniform(bg), image.ZP, draw.Src)
-		draw.Draw(canvas, bounds, img, image.ZP, draw.Over)
-		img = canvas // swap original image with the new one
+		rgbaOut = image.NewRGBA(bounds)
+		draw.Draw(rgbaOut, bounds, image.NewUniform(bg), image.ZP, draw.Src)
+		draw.Draw(rgbaOut, bounds, img, image.ZP, draw.Over)
+	} else {
+		if v, ok := img.(*image.RGBA); ok {
+			rgbaOut = v
+		} else {
+			rgbaOut = image.NewRGBA(bounds)
+			draw.Draw(rgbaOut, bounds, img, image.ZP, draw.Src)
+		}
 	}
 
 	yMin, xMin := bounds.Min.Y, bounds.Min.X
@@ -311,8 +318,8 @@ func createANSImage(bg color.Color, img image.Image) (*ANSImage, error) {
 
 	for y := yMin; y < yMax; y++ {
 		for x := xMin; x < xMax; x++ {
-			r, g, b, _ := img.At(x, y).RGBA()
-			if err := ansimage.SetAt(y, x, r, g, b); err != nil {
+			v := rgbaOut.RGBAAt(x, y)
+			if err := ansimage.SetAt(y, x, v.R, v.G, v.B); err != nil {
 				return nil, err
 			}
 		}
