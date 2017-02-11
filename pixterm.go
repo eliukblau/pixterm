@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	pxtVersion = "1.1.0"
+	pxtVersion = "1.1.1"
 	pxtLogo    = `
 
    ___  _____  ____
@@ -60,12 +60,16 @@ func printCredits() {
 	printLogo()
 	fmt.Print("CONTRIBUTORS:\n\n")
 
-	fmt.Print("  > disq - http://github.com/disq\n")
+	fmt.Print("  > @disq - http://github.com/disq\n")
 	fmt.Print("      Original code for image transparency support.\n")
 	fmt.Println()
 
-	fmt.Print("  > danirod - http://github.com/danirod\n")
-	fmt.Print("  > Xpktro - http://github.com/Xpktro\n")
+	fmt.Print("  > @timob - http://github.com/timob\n")
+	fmt.Print("      Fix for ANSIpixel type: use 8bit color component for output.\n")
+	fmt.Println()
+
+	fmt.Print("  > @danirod - http://github.com/danirod\n")
+	fmt.Print("  > @Xpktro - http://github.com/Xpktro\n")
 	fmt.Print("      Moral support.\n")
 	fmt.Println()
 }
