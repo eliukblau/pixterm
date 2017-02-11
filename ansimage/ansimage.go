@@ -30,14 +30,14 @@ import (
 	_ "golang.org/x/image/webp" // initialize decoder
 )
 
-// Unicode Block Element character used to represent lower pixel in terminal row
+// Unicode Block Element character used to represent lower pixel in terminal row.
 // INFO: http://en.wikipedia.org/wiki/Block_Elements
 const lowerHalfBlock = "\u2584"
 
 // ANSImage scale modes:
 // resize (full scaled to area),
 // fill (resize and crop the image with a center anchor point to fill area),
-// fit (resize the image to fit area, preserving the aspect ratio)
+// fit (resize the image to fit area, preserving the aspect ratio).
 const (
 	ScaleModeResize = scaleMode(iota)
 	ScaleModeFill
@@ -45,42 +45,33 @@ const (
 )
 
 var (
-	MatteColorTransparent = MatteColor(color.Transparent)
-	MatteColorBlack       = MatteColor(color.Black)
-	MatteColorWhite       = MatteColor(color.White)
-)
-
-var (
-	// ErrOddHeight happens when ANSImage height is not even value
+	// ErrOddHeight happens when ANSImage height is not even value.
 	ErrOddHeight = errors.New("ANSImage: height must be even value")
 
-	// ErrInvalidBounds happens when ANSImage height or width are invalid values
+	// ErrInvalidBounds happens when ANSImage height or width are invalid values.
 	ErrInvalidBounds = errors.New("ANSImage: height or width must be >=2")
 
-	// ErrOutOfBounds happens when ANSI-pixel coordinates are out of ANSImage bounds
+	// ErrOutOfBounds happens when ANSI-pixel coordinates are out of ANSImage bounds.
 	ErrOutOfBounds = errors.New("ANSImage: out of bounds")
 )
 
-// scaleMode type is used for image scale mode constants
+// scaleMode type is used for image scale mode constants.
 type scaleMode uint8
 
-// MatteColor determines the fill-color of the underlying (background) image
-type MatteColor color.Color
-
-// ANSIpixel represents a pixel of an ANSImage
+// ANSIpixel represents a pixel of an ANSImage.
 type ANSIpixel struct {
 	R, G, B uint32
 	upper   bool
 }
 
-// ANSImage represents an image encoded in ANSI escape codes
+// ANSImage represents an image encoded in ANSI escape codes.
 type ANSImage struct {
 	h, w     int
 	maxprocs int
 	pixmap   [][]*ANSIpixel
 }
 
-// Render returns the ANSI-compatible string form of ANSI-pixel
+// Render returns the ANSI-compatible string form of ANSI-pixel.
 func (ap *ANSIpixel) Render() string {
 	if ap.upper {
 		return fmt.Sprintf(
@@ -95,28 +86,28 @@ func (ap *ANSIpixel) Render() string {
 	)
 }
 
-// Height gets total rows of ANSImage
+// Height gets total rows of ANSImage.
 func (ai *ANSImage) Height() int {
 	return ai.h
 }
 
-// Width gets total columns of ANSImage
+// Width gets total columns of ANSImage.
 func (ai *ANSImage) Width() int {
 	return ai.w
 }
 
 // SetMaxProcs sets the maximum number of parallel goroutines to render the ANSImage
-// (user should manually sets `runtime.GOMAXPROCS(max)` before to this change takes effect)
+// (user should manually sets `runtime.GOMAXPROCS(max)` before to this change takes effect).
 func (ai *ANSImage) SetMaxProcs(max int) {
 	ai.maxprocs = max
 }
 
-// GetMaxProcs gets the maximum number of parallels goroutines to render the ANSImage
+// GetMaxProcs gets the maximum number of parallels goroutines to render the ANSImage.
 func (ai *ANSImage) GetMaxProcs() int {
 	return ai.maxprocs
 }
 
-// SetAt sets ANSI-pixel color (RBG) in coordinates (y,x)
+// SetAt sets ANSI-pixel color (RBG) in coordinates (y,x).
 func (ai *ANSImage) SetAt(y, x int, r, g, b uint32) error {
 	if y >= 0 && y < ai.h && x >= 0 && x < ai.w {
 		ai.pixmap[y][x].R = r
@@ -128,7 +119,7 @@ func (ai *ANSImage) SetAt(y, x int, r, g, b uint32) error {
 	return ErrOutOfBounds
 }
 
-// GetAt gets ANSI-pixel in coordinates (y,x)
+// GetAt gets ANSI-pixel in coordinates (y,x).
 func (ai *ANSImage) GetAt(y, x int) (*ANSIpixel, error) {
 	if y >= 0 && y < ai.h && x >= 0 && x < ai.w {
 		return &ANSIpixel{
@@ -198,12 +189,12 @@ func (ai *ANSImage) Render() string {
 // 	return str
 // }
 
-// Draw writes the ANSImage to standard output (terminal)
+// Draw writes the ANSImage to standard output (terminal).
 func (ai *ANSImage) Draw() {
 	fmt.Print(ai.Render())
 }
 
-// New creates a new empty ANSImage ready to draw on it
+// New creates a new empty ANSImage ready to draw on it.
 func New(h, w int) (*ANSImage, error) {
 	if h%2 != 0 {
 		return nil, ErrOddHeight
@@ -233,18 +224,20 @@ func New(h, w int) (*ANSImage, error) {
 	return ansimage, nil
 }
 
-// NewFromReader creates a new ANSImage from an io.Reader
-func NewFromReader(mm MatteColor, reader io.Reader) (*ANSImage, error) {
+// NewFromReader creates a new ANSImage from an io.Reader.
+// Background color is used to fill when image has transparency.
+func NewFromReader(bg color.Color, reader io.Reader) (*ANSImage, error) {
 	image, _, err := image.Decode(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	return createANSImage(image, mm)
+	return createANSImage(bg, image)
 }
 
-// NewScaledFromReader creates a new scaled ANSImage from an io.Reader
-func NewScaledFromReader(y, x int, sm scaleMode, mc MatteColor, reader io.Reader) (*ANSImage, error) {
+// NewScaledFromReader creates a new scaled ANSImage from an io.Reader.
+// Background color is used to fill when image has transparency.
+func NewScaledFromReader(y, x int, sm scaleMode, bg color.Color, reader io.Reader) (*ANSImage, error) {
 	image, _, err := image.Decode(reader)
 	if err != nil {
 		return nil, err
@@ -259,32 +252,29 @@ func NewScaledFromReader(y, x int, sm scaleMode, mc MatteColor, reader io.Reader
 		image = imaging.Fit(image, x, y, imaging.Lanczos)
 	}
 
-	return createANSImage(image, mc)
+	return createANSImage(bg, image)
 }
 
-// NewFromFile creates a new ANSImage from a file
-func NewFromFile(name string) (*ANSImage, error) {
+// NewFromFile creates a new ANSImage from a file.
+// Background color is used to fill when image has transparency.
+func NewFromFile(bg color.Color, name string) (*ANSImage, error) {
 	reader, err := os.Open(name)
 	if err != nil {
 		return nil, err
 	}
 	defer reader.Close()
-	return NewFromReader(MatteColorTransparent, reader)
+	return NewFromReader(bg, reader)
 }
 
-// NewScaledFromFile creates a new scaled ANSImage from a file
-func NewScaledFromFile(y, x int, sm scaleMode, name string) (*ANSImage, error) {
-	return NewScaledMatteFromFile(y, x, sm, MatteColorTransparent, name)
-}
-
-// NewScaledFromFile creates a new scaled ANSImage from a file
-func NewScaledMatteFromFile(y, x int, sm scaleMode, mc MatteColor, name string) (*ANSImage, error) {
+// NewScaledFromFile creates a new scaled ANSImage from a file.
+// Background color is used to fill when image has transparency.
+func NewScaledFromFile(y, x int, sm scaleMode, bg color.Color, name string) (*ANSImage, error) {
 	reader, err := os.Open(name)
 	if err != nil {
 		return nil, err
 	}
 	defer reader.Close()
-	return NewScaledFromReader(y, x, sm, mc, reader)
+	return NewScaledFromReader(y, x, sm, bg, reader)
 }
 
 // ClearTerminal clears current terminal buffer using ANSI escape code.
@@ -293,18 +283,18 @@ func ClearTerminal() {
 	fmt.Print("\033[H\033[2J")
 }
 
-// createANSImage loads data from an image and returns an ANSImage
-func createANSImage(img image.Image, mc MatteColor) (*ANSImage, error) {
+// createANSImage loads data from an image and returns an ANSImage.
+// Background color is used to fill when image has transparency.
+func createANSImage(bg color.Color, img image.Image) (*ANSImage, error) {
 	bounds := img.Bounds()
 
-	// Skip compositing if no matte
-	if mc != MatteColorTransparent {
-		base := image.NewRGBA(bounds)
-		draw.Draw(base, bounds, &image.Uniform{mc}, image.ZP, draw.Src)
-		draw.Draw(base, bounds, img, image.ZP, draw.Over)
-
-		// Exchange our drawn-over-matte image with the original
-		img = base
+	// do compositing only if background color has no transparency (thank you disq for the idea!)
+	// (info - http://stackoverflow.com/questions/36595687/transparent-pixel-color-go-lang-image)
+	if _, _, _, a := bg.RGBA(); a >= 0xffff {
+		canvas := image.NewRGBA(bounds)
+		draw.Draw(canvas, bounds, image.NewUniform(bg), image.ZP, draw.Src)
+		draw.Draw(canvas, bounds, img, image.ZP, draw.Over)
+		img = canvas // swap original image with the new one
 	}
 
 	yMin, xMin := bounds.Min.Y, bounds.Min.X

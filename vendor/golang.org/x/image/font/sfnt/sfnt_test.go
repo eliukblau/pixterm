@@ -88,6 +88,167 @@ func testTrueType(t *testing.T, f *Font) {
 	}
 }
 
+func TestGoRegularGlyphIndex(t *testing.T) {
+	f, err := Parse(goregular.TTF)
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+
+	testCases := []struct {
+		r    rune
+		want GlyphIndex
+	}{
+		// Glyphs that aren't present in Go Regular.
+		{'\u001f', 0}, // U+001F <control>
+		{'\u0200', 0}, // U+0200 LATIN CAPITAL LETTER A WITH DOUBLE GRAVE
+		{'\u2000', 0}, // U+2000 EN QUAD
+
+		// The want values below can be verified by running the ttx tool on
+		// Go-Regular.ttf.
+		//
+		// The actual values are ad hoc, and result from whatever tools the
+		// Bigelow & Holmes type foundry used and the order in which they
+		// crafted the glyphs. They may change over time as newer versions of
+		// the font are released. In practice, though, running this test with
+		// coverage analysis suggests that it covers both the zero and non-zero
+		// cmapEntry16.offset cases for a format-4 cmap table.
+
+		{'\u0020', 3},   // U+0020 SPACE
+		{'\u0021', 4},   // U+0021 EXCLAMATION MARK
+		{'\u0022', 5},   // U+0022 QUOTATION MARK
+		{'\u0023', 6},   // U+0023 NUMBER SIGN
+		{'\u0024', 223}, // U+0024 DOLLAR SIGN
+		{'\u0025', 7},   // U+0025 PERCENT SIGN
+		{'\u0026', 8},   // U+0026 AMPERSAND
+		{'\u0027', 9},   // U+0027 APOSTROPHE
+
+		{'\u03bd', 423}, // U+03BD GREEK SMALL LETTER NU
+		{'\u03be', 424}, // U+03BE GREEK SMALL LETTER XI
+		{'\u03bf', 438}, // U+03BF GREEK SMALL LETTER OMICRON
+		{'\u03c0', 208}, // U+03C0 GREEK SMALL LETTER PI
+		{'\u03c1', 425}, // U+03C1 GREEK SMALL LETTER RHO
+		{'\u03c2', 426}, // U+03C2 GREEK SMALL LETTER FINAL SIGMA
+	}
+
+	var b Buffer
+	for _, tc := range testCases {
+		got, err := f.GlyphIndex(&b, tc.r)
+		if err != nil {
+			t.Errorf("r=%q: %v", tc.r, err)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("r=%q: got %d, want %d", tc.r, got, tc.want)
+			continue
+		}
+	}
+}
+
+func TestGlyphIndex(t *testing.T) {
+	data, err := ioutil.ReadFile(filepath.FromSlash("../testdata/cmapTest.ttf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, format := range []int{-1, 0, 4, 12} {
+		testGlyphIndex(t, data, format)
+	}
+}
+
+func testGlyphIndex(t *testing.T, data []byte, cmapFormat int) {
+	if cmapFormat >= 0 {
+		originalSupportedCmapFormat := supportedCmapFormat
+		defer func() {
+			supportedCmapFormat = originalSupportedCmapFormat
+		}()
+		supportedCmapFormat = func(format, pid, psid uint16) bool {
+			return int(format) == cmapFormat && originalSupportedCmapFormat(format, pid, psid)
+		}
+	}
+
+	f, err := Parse(data)
+	if err != nil {
+		t.Errorf("cmapFormat=%d: %v", cmapFormat, err)
+		return
+	}
+
+	testCases := []struct {
+		r    rune
+		want GlyphIndex
+	}{
+		// Glyphs that aren't present in cmapTest.ttf.
+		{'?', 0},
+		{'\ufffd', 0},
+		{'\U0001f4a9', 0},
+
+		// For a .TTF file, FontForge maps:
+		//	- ".notdef"          to glyph index 0.
+		//	- ".null"            to glyph index 1.
+		//	- "nonmarkingreturn" to glyph index 2.
+
+		{'/', 0},
+		{'0', 3},
+		{'1', 4},
+		{'2', 5},
+		{'3', 0},
+
+		{'@', 0},
+		{'A', 6},
+		{'B', 7},
+		{'C', 0},
+
+		{'`', 0},
+		{'a', 8},
+		{'b', 0},
+
+		// Of the remaining runes, only U+00FF LATIN SMALL LETTER Y WITH
+		// DIAERESIS is in both the Mac Roman encoding and the cmapTest.ttf
+		// font file.
+		{'\u00fe', 0},
+		{'\u00ff', 9},
+		{'\u0100', 10},
+		{'\u0101', 11},
+		{'\u0102', 0},
+
+		{'\u4e2c', 0},
+		{'\u4e2d', 12},
+		{'\u4e2e', 0},
+
+		{'\U0001f0a0', 0},
+		{'\U0001f0a1', 13},
+		{'\U0001f0a2', 0},
+
+		{'\U0001f0b0', 0},
+		{'\U0001f0b1', 14},
+		{'\U0001f0b2', 15},
+		{'\U0001f0b3', 0},
+	}
+
+	var b Buffer
+	for _, tc := range testCases {
+		want := tc.want
+		switch {
+		case cmapFormat == 0 && tc.r > '\u007f' && tc.r != '\u00ff':
+			// cmap format 0, with the Macintosh Roman encoding, can only
+			// represent a limited set of non-ASCII runes, e.g. U+00FF.
+			want = 0
+		case cmapFormat == 4 && tc.r > '\uffff':
+			// cmap format 4 only supports the Basic Multilingual Plane (BMP).
+			want = 0
+		}
+
+		got, err := f.GlyphIndex(&b, tc.r)
+		if err != nil {
+			t.Errorf("cmapFormat=%d, r=%q: %v", cmapFormat, tc.r, err)
+			continue
+		}
+		if got != want {
+			t.Errorf("cmapFormat=%d, r=%q: got %d, want %d", cmapFormat, tc.r, got, want)
+			continue
+		}
+	}
+}
+
 func TestPostScriptSegments(t *testing.T) {
 	// wants' vectors correspond 1-to-1 to what's in the CFFTest.sfd file,
 	// although OpenType/CFF and FontForge's SFD have reversed orders.
@@ -226,7 +387,7 @@ func TestTrueTypeSegments(t *testing.T) {
 }
 
 func testSegments(t *testing.T, filename string, wants [][]Segment) {
-	data, err := ioutil.ReadFile(filepath.Join("..", "testdata", filename))
+	data, err := ioutil.ReadFile(filepath.FromSlash("../testdata/" + filename))
 	if err != nil {
 		t.Fatal(err)
 	}

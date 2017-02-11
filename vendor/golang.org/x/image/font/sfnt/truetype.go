@@ -113,6 +113,11 @@ func appendGlyfSegments(dst []Segment, data []byte) ([]Segment, error) {
 		return nil, errInvalidGlyphData
 	}
 
+	// TODO: support compound glyphs.
+	if numContours < 0 {
+		return nil, errUnsupportedCompoundGlyph
+	}
+
 	// Skip the hinting instructions.
 	index += 2
 	if index > len(data) {
@@ -122,11 +127,6 @@ func appendGlyfSegments(dst []Segment, data []byte) ([]Segment, error) {
 	index += hintsLength
 	if index > len(data) {
 		return nil, errInvalidGlyphData
-	}
-
-	// TODO: support compound glyphs.
-	if numContours < 0 {
-		return nil, errUnsupportedCompoundGlyph
 	}
 
 	// For simple (non-compound) glyphs, the remainder of the glyf data
