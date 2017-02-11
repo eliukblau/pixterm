@@ -22,11 +22,12 @@ import (
 	"strings"
 
 	"github.com/eliukblau/pixterm/ansimage"
+	"github.com/lucasb-eyer/go-colorful"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
-	pxtVersion = "1.0.0"
+	pxtVersion = "1.1.0"
 	pxtLogo    = `
 
    ___  _____  ____
@@ -38,9 +39,11 @@ const (
 )
 
 var (
-	flagRows  uint
-	flagCols  uint
-	flagScale uint
+	flagCredits bool
+	flagMatte   string
+	flagScale   uint
+	flagRows    uint
+	flagCols    uint
 )
 
 func main() {
@@ -51,6 +54,20 @@ func main() {
 
 func printLogo() {
 	fmt.Print(strings.Trim(strings.Replace(pxtLogo, "{{VERSION}}", pxtVersion, 1), "\n"), "\n\n")
+}
+
+func printCredits() {
+	printLogo()
+	fmt.Print("CONTRIBUTORS:\n\n")
+
+	fmt.Print("  > disq - http://github.com/disq\n")
+	fmt.Print("      Original code for image transparency support.\n")
+	fmt.Println()
+
+	fmt.Print("  > danirod - http://github.com/danirod\n")
+	fmt.Print("  > Xpktro - http://github.com/Xpktro\n")
+	fmt.Print("      Moral support.\n")
+	fmt.Println()
 }
 
 func throwError(code int, v ...interface{}) {
@@ -65,18 +82,21 @@ func configureFlags() {
 
 		_, file := filepath.Split(os.Args[0])
 		fmt.Print("USAGE:\n\n")
-		fmt.Printf("  %v [options] image (JPEG, PNG, GIF, BMP, TIFF, WebP)\n\n", file)
+		fmt.Printf("  %s [options] image (JPEG, PNG, GIF, BMP, TIFF, WebP)\n\n", file)
 
 		fmt.Print("OPTIONS:\n\n")
 		flag.CommandLine.SetOutput(os.Stdout)
 		flag.CommandLine.PrintDefaults()
 		flag.CommandLine.SetOutput(ioutil.Discard) // hide flag errors
+		fmt.Print("  -help\n\tprints this message :D LOL\n")
 		fmt.Println()
 	}
 
 	flag.CommandLine.SetOutput(ioutil.Discard) // hide flag errors
 	flag.CommandLine.Init(os.Args[0], flag.ExitOnError)
 
+	flag.CommandLine.BoolVar(&flagCredits, "credits", false, "shows some love to contributors <3")
+	flag.CommandLine.StringVar(&flagMatte, "m", "", "matte `color` for image transparency\n\t(optional, hex format, default: 000000)")
 	flag.CommandLine.UintVar(&flagScale, "s", 0, "scale `method`:\n\t  0 - resize (default)\n\t  1 - fill\n\t  2 - fit")
 	flag.CommandLine.UintVar(&flagRows, "tr", 0, "terminal `rows` (optional, >=2)")
 	flag.CommandLine.UintVar(&flagCols, "tc", 0, "terminal `columns` (optional, >=2)")
@@ -85,15 +105,23 @@ func configureFlags() {
 }
 
 func validateFlags() {
-	if flag.CommandLine.Arg(0) == "" {
-		flag.CommandLine.Usage()
-		os.Exit(2)
+	if flagCredits {
+		printCredits()
+		os.Exit(0)
 	}
+
 	if flagScale != 0 && flagScale != 1 && flagScale != 2 {
 		flag.CommandLine.Usage()
 		os.Exit(2)
 	}
+
 	if (flagRows > 0 && flagRows < 2) || (flagCols > 0 && flagCols < 2) {
+		flag.CommandLine.Usage()
+		os.Exit(2)
+	}
+
+	// this is image filename
+	if flag.CommandLine.Arg(0) == "" {
 		flag.CommandLine.Usage()
 		os.Exit(2)
 	}
@@ -110,8 +138,10 @@ func getTerminalSize() (width, height int, err error) {
 }
 
 func runPixterm() {
-	var pix *ansimage.ANSImage
-	var err error
+	var (
+		pix *ansimage.ANSImage
+		err error
+	)
 
 	// get terminal size
 	tx, ty, err := getTerminalSize()
@@ -127,15 +157,24 @@ func runPixterm() {
 		tx = int(flagCols)
 	}
 
+	// get matte color
+	if flagMatte == "" {
+		flagMatte = "000000" // black background
+	}
+	mc, err := colorful.Hex("#" + flagMatte) // RGB color from Hex format
+	if err != nil {
+		throwError(2, fmt.Sprintf("matte color : %s is not a hex-color", flagMatte))
+	}
+
 	// set scale mode and create new ANSImage from file
 	file := flag.CommandLine.Arg(0)
 	switch flagScale {
 	case 0:
-		pix, err = ansimage.NewScaledFromFile(2*(ty-1), tx, ansimage.ScaleModeResize, file)
+		pix, err = ansimage.NewScaledFromFile(2*(ty-1), tx, ansimage.ScaleModeResize, mc, file)
 	case 1:
-		pix, err = ansimage.NewScaledFromFile(2*(ty-1), tx, ansimage.ScaleModeFill, file)
+		pix, err = ansimage.NewScaledFromFile(2*(ty-1), tx, ansimage.ScaleModeFill, mc, file)
 	case 2:
-		pix, err = ansimage.NewScaledFromFile(2*(ty-1), tx, ansimage.ScaleModeFit, file)
+		pix, err = ansimage.NewScaledFromFile(2*(ty-1), tx, ansimage.ScaleModeFit, mc, file)
 	}
 	if err != nil {
 		throwError(1, err)

@@ -2,20 +2,20 @@
    ___  _____  ____
   / _ \/  _/ |/_/ /____ ______ _    Made with love by Eliuk Blau
  / ___// /_>  </ __/ -_) __/  ' \   github.com/eliukblau/pixterm
-/_/  /___/_/|_|\__/\__/_/ /_/_/_/   v1.0.0
+/_/  /___/_/|_|\__/\__/_/ /_/_/_/   v1.1.0
 
 ```
 
 # `PIXterm` - *draw images in your ANSI terminal with true color*
 
-**`PIXterm`** ***shows images directly in your terminal***, recreating the pixels through a combination of [ANSI character background color](http://en.wikipedia.org/wiki/ANSI_escape_code#Colors) and the [unicode lower half block element](http://en.wikipedia.org/wiki/Block_Elements).
+**`PIXterm`** ***shows images directly in your terminal***, recreating the pixels through a combination of [ANSI character background color](http://en.wikipedia.org/wiki/ANSI_escape_code#Colors) and the [unicode lower half block element](http://en.wikipedia.org/wiki/Block_Elements). If image has transparency, an optional matte color can be used for background.
 
-The conversion process runs fast because it is parallelized in all available logical CPUs.
+The conversion process runs fast because it is parallelized in all CPUs.
 
 Supported image formats: JPEG, PNG, GIF, BMP, TIFF, WebP.
 
 
-#### Cool Screenshots (xD)
+#### Cool Screenshots
 
 ![Screenshot 1](screenshot1.png)
 
@@ -40,14 +40,15 @@ All dependencies are directly included in the project via [Go's Vendor Directori
 
 ###### Dependencies for `PIXterm` CLI tool
 
+- Package [colorful](github.com/lucasb-eyer/go-colorful): `github.com/lucasb-eyer/go-colorful`
 - Package [terminal](http://godoc.org/golang.org/x/crypto/ssh/terminal): `golang.org/x/crypto/ssh/terminal`
 
 ###### Dependencies for `ANSImage` Package
 
 - Package [imaging](http://github.com/disintegration/imaging): `github.com/disintegration/imaging`
+- Package [webp](http://godoc.org/golang.org/x/image/webp): `golang.org/x/image/webp`
 - Package [bmp](http://godoc.org/golang.org/x/image/bmp): `golang.org/x/image/bmp`
 - Package [tiff](http://godoc.org/golang.org/x/image/tiff): `golang.org/x/image/tiff`
-- Package [webp](http://godoc.org/golang.org/x/image/webp): `golang.org/x/image/webp`
 
 
 #### Installation
@@ -69,3 +70,8 @@ Run this command to automatically download sources and install **`PIXterm`** bin
 #### License
 
 [Mozilla Public License Version 2.0](http://mozilla.org/MPL/2.0)
+
+
+#### Contributors
+
+- [disq](http://github.com/disq) - Original code for image transparency support.
