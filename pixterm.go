@@ -44,6 +44,7 @@ var (
 	flagScale   uint
 	flagRows    uint
 	flagCols    uint
+	redirected  bool = false
 )
 
 func main() {
@@ -133,12 +134,16 @@ func validateFlags() {
 
 func checkTerminal() {
 	if !terminal.IsTerminal(int(os.Stdout.Fd())) {
-		throwError(1, "Not running on terminal :(")
+		redirected = true
 	}
 }
 
 func getTerminalSize() (width, height int, err error) {
-	return terminal.GetSize(int(os.Stdout.Fd()))
+       if redirected == false {
+	   return terminal.GetSize(int(os.Stdout.Fd()))
+       } else {
+	   return 80,50,nil
+       }
 }
 
 func runPixterm() {
