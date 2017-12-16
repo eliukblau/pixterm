@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	pxtVersion = "1.1.1"
+	pxtVersion = "1.2.0"
 	pxtLogo    = `
 
    ___  _____  ____
@@ -40,6 +40,7 @@ const (
 
 var (
 	flagCredits bool
+	flagDither  uint
 	flagMatte   string
 	flagScale   uint
 	flagRows    uint
@@ -100,7 +101,8 @@ func configureFlags() {
 	flag.CommandLine.Init(os.Args[0], flag.ExitOnError)
 
 	flag.CommandLine.BoolVar(&flagCredits, "credits", false, "shows some love to contributors <3")
-	flag.CommandLine.StringVar(&flagMatte, "m", "", "matte `color` for image transparency\n\t(optional, hex format, default: 000000)")
+	flag.CommandLine.UintVar(&flagDither, "d", 0, "dithering `mode`:\n\t  0 - no dithering (default)\n\t  1 - with blocks\n\t  2 - with chars")
+	flag.CommandLine.StringVar(&flagMatte, "m", "", "matte `color` for transparency or background\n\t(optional, hex format, default: 000000)")
 	flag.CommandLine.UintVar(&flagScale, "s", 0, "scale `method`:\n\t  0 - resize (default)\n\t  1 - fill\n\t  2 - fit")
 	flag.CommandLine.UintVar(&flagRows, "tr", 0, "terminal `rows` (optional, >=2)")
 	flag.CommandLine.UintVar(&flagCols, "tc", 0, "terminal `columns` (optional, >=2)")
@@ -112,6 +114,11 @@ func validateFlags() {
 	if flagCredits {
 		printCredits()
 		os.Exit(0)
+	}
+
+	if flagDither != 0 && flagDither != 1 && flagDither != 2 {
+		flag.CommandLine.Usage()
+		os.Exit(2)
 	}
 
 	if flagScale != 0 && flagScale != 1 && flagScale != 2 {
@@ -154,11 +161,23 @@ func runPixterm() {
 	}
 
 	// use custom terminal size (if applies)
-	if flagRows != 0 {
-		ty = int(flagRows) + 1
+	if ty--; flagRows != 0 { // no custom rows? subtract 1 for prompt spacing
+		ty = int(flagRows) + 1 // weird, but in this case is necessary to add 1 :O
 	}
 	if flagCols != 0 {
 		tx = int(flagCols)
+	}
+
+	// get scale mode from flag
+	sm := ansimage.ScaleMode(flagScale)
+
+	// get dithering mode from flag
+	dm := ansimage.DitheringMode(flagDither)
+
+	// set image scale factor for ANSIPixel grid
+	sfy, sfx := ansimage.BlockSizeY, ansimage.BlockSizeX // 8x4 --> with dithering
+	if ansimage.DitheringMode(flagDither) == ansimage.NoDithering {
+		sfy, sfx = 2, 1 // 2x1 --> without dithering
 	}
 
 	// get matte color
@@ -170,16 +189,9 @@ func runPixterm() {
 		throwError(2, fmt.Sprintf("matte color : %s is not a hex-color", flagMatte))
 	}
 
-	// set scale mode and create new ANSImage from file
+	// create new ANSImage from file
 	file := flag.CommandLine.Arg(0)
-	switch flagScale {
-	case 0:
-		pix, err = ansimage.NewScaledFromFile(2*(ty-1), tx, ansimage.ScaleModeResize, mc, file)
-	case 1:
-		pix, err = ansimage.NewScaledFromFile(2*(ty-1), tx, ansimage.ScaleModeFill, mc, file)
-	case 2:
-		pix, err = ansimage.NewScaledFromFile(2*(ty-1), tx, ansimage.ScaleModeFit, mc, file)
-	}
+	pix, err = ansimage.NewScaledFromFile(file, sfy*ty, sfx*tx, mc, sm, dm)
 	if err != nil {
 		throwError(1, err)
 	}

@@ -4,6 +4,7 @@ package colorful
 import(
     "fmt"
     "math"
+    "image/color"
 )
 
 // A color is stored internally using sRGB (standard RGB) values in the range 0-1
@@ -13,18 +14,34 @@ type Color struct {
 
 // Implement the Go color.Color interface.
 func (col Color) RGBA() (r, g, b, a uint32) {
-    r = uint32(col.R*65535.0)
-    g = uint32(col.G*65535.0)
-    b = uint32(col.B*65535.0)
+    r = uint32(col.R*65535.0+0.5)
+    g = uint32(col.G*65535.0+0.5)
+    b = uint32(col.B*65535.0+0.5)
     a = 0xFFFF
     return
 }
 
+// Constructs a colorful.Color from something implementing color.Color
+func MakeColor(col color.Color) Color {
+    r, g, b, a := col.RGBA()
+
+    // Since color.Color is alpha pre-multiplied, we need to divide the
+    // RGB values by alpha again in order to get back the original RGB.
+    r *= 0xffff
+    r /= a
+    g *= 0xffff
+    g /= a
+    b *= 0xffff
+    b /= a
+
+    return Color{float64(r)/65535.0, float64(g)/65535.0, float64(b)/65535.0}
+}
+
 // Might come in handy sometimes to reduce boilerplate code.
 func (col Color) RGB255() (r, g, b uint8) {
-    r = uint8(col.R*255.0)
-    g = uint8(col.G*255.0)
-    b = uint8(col.B*255.0)
+    r = uint8(col.R*255.0+0.5)
+    g = uint8(col.G*255.0+0.5)
+    b = uint8(col.B*255.0+0.5)
     return
 }
 
@@ -82,6 +99,14 @@ func (c1 Color) BlendRgb(c2 Color, t float64) Color {
                  c1.B + t*(c2.B - c1.B)}
 }
 
+// Utility used by Hxx color-spaces for interpolating between two angles in [0,360].
+func interp_angle(a0, a1, t float64) float64 {
+    // Based on the answer here: http://stackoverflow.com/a/14498790/2366315
+    // With potential proof that it works here: http://math.stackexchange.com/a/2144499
+    delta := math.Mod(math.Mod(a1 - a0, 360.0) + 540, 360.0) - 180.0
+    return math.Mod(a0 + t*delta + 360.0, 360.0)
+}
+
 
 /// HSV ///
 ///////////
@@ -137,19 +162,7 @@ func (c1 Color) BlendHsv(c2 Color, t float64) Color {
     h2, s2, v2 := c2.Hsv()
 
     // We know that h are both in [0..360]
-    var H float64
-    if math.Abs(h2 - h1) <= 180.0 {
-        // Won't wrap
-        H = h1 + t*(h2-h1)
-    } else if h1 < h2 {
-        // Will wrap
-        H = math.Mod(h1 + 360.0 + t*(h2 - h1 - 360.0), 360.0)
-    } else {
-        // Will wrap
-        H = math.Mod(h2 + 360.0 + t*(h1 - h2 - 360.0), 360.0)
-    }
-
-    return Hsv(H, s1 + t*(s2 - s1), v1 + t*(v2 - v1))
+    return Hsv(interp_angle(h1, h2, t), s1 + t*(s2 - s1), v1 + t*(v2 - v1))
 }
 
 /// HSL ///
@@ -320,11 +333,23 @@ func (col Color) LinearRgb() (r, g, b float64) {
     return
 }
 
+// A much faster and still quite precise linearization using a 6th-order Taylor approximation.
+// See the accompanying Jupyter notebook for derivation of the constants.
+func linearize_fast(v float64) float64 {
+    v1 := v - 0.5
+    v2 := v1*v1
+    v3 := v2*v1
+    v4 := v2*v2
+    //v5 := v3*v2
+    return -0.248750514614486 + 0.925583310193438*v + 1.16740237321695*v2 + 0.280457026598666*v3 - 0.0757991963780179*v4 //+ 0.0437040411548932*v5
+}
+
 // FastLinearRgb is much faster than and almost as accurate as LinearRgb.
+// BUT it is important to NOTE that they only produce good results for valid colors r,g,b in [0,1].
 func (col Color) FastLinearRgb() (r, g, b float64) {
-    r = math.Pow(col.R, 2.2)
-    g = math.Pow(col.G, 2.2)
-    b = math.Pow(col.B, 2.2)
+    r = linearize_fast(col.R)
+    g = linearize_fast(col.G)
+    b = linearize_fast(col.B)
     return
 }
 
@@ -340,9 +365,37 @@ func LinearRgb(r, g, b float64) Color {
     return Color{delinearize(r), delinearize(g), delinearize(b)}
 }
 
+func delinearize_fast(v float64) float64 {
+    // This function (fractional root) is much harder to linearize, so we need to split.
+    if v > 0.2 {
+        v1 := v - 0.6
+        v2 := v1*v1
+        v3 := v2*v1
+        v4 := v2*v2
+        v5 := v3*v2
+        return 0.442430344268235 + 0.592178981271708*v - 0.287864782562636*v2 + 0.253214392068985*v3 - 0.272557158129811*v4 + 0.325554383321718*v5
+    } else if v > 0.03 {
+        v1 := v - 0.115
+        v2 := v1*v1
+        v3 := v2*v1
+        v4 := v2*v2
+        v5 := v3*v2
+        return 0.194915592891669 + 1.55227076330229*v - 3.93691860257828*v2 + 18.0679839248761*v3 - 101.468750302746*v4 + 632.341487393927*v5
+    } else {
+        v1 := v - 0.015
+        v2 := v1*v1
+        v3 := v2*v1
+        v4 := v2*v2
+        v5 := v3*v2
+        // You can clearly see from the involved constants that the low-end is highly nonlinear.
+        return 0.0519565234928877 + 5.09316778537561*v - 99.0338180489702*v2 + 3484.52322764895*v3 - 150028.083412663*v4 + 7168008.42971613*v5
+    }
+}
+
 // FastLinearRgb is much faster than and almost as accurate as LinearRgb.
+// BUT it is important to NOTE that they only produce good results for valid inputs r,g,b in [0,1].
 func FastLinearRgb(r, g, b float64) Color {
-    return Color{math.Pow(r, 1.0/2.2), math.Pow(g, 1.0/2.2), math.Pow(b, 1.0/2.2)}
+    return Color{delinearize_fast(r), delinearize_fast(g), delinearize_fast(b)}
 }
 
 // XyzToLinearRgb converts from CIE XYZ-space to Linear RGB space.
@@ -493,6 +546,8 @@ func (col Color) LabWhiteRef(wref [3]float64) (l, a, b float64) {
 }
 
 // Generates a color by using data given in CIE L*a*b* space using D65 as reference white.
+// WARNING: many combinations of `l`, `a`, and `b` values do not have corresponding
+//          valid RGB values, check the FAQ in the README if you're unsure.
 func Lab(l, a, b float64) Color {
     return Xyz(LabToXyz(l, a, b))
 }
@@ -523,20 +578,35 @@ func (cl Color) DistanceCIE94(cr Color) float64 {
     l1, a1, b1 := cl.Lab()
     l2, a2, b2 := cr.Lab()
 
-    kl := 1.0
-    k1 := 0.045
-    k2 := 0.015
+    // NOTE: Since all those formulas expect L,a,b values 100x larger than we
+    //       have them in this library, we either need to adjust all constants
+    //       in the formula, or convert the ranges of L,a,b before, and then
+    //       scale the distances down again. The latter is less error-prone.
+    l1, a1, b1 = l1*100.0, a1*100.0, b1*100.0
+    l2, a2, b2 = l2*100.0, a2*100.0, b2*100.0
+
+    kl := 1.0  // 2.0 for textiles
+    kc := 1.0
+    kh := 1.0
+    k1 := 0.045  // 0.048 for textiles
+    k2 := 0.015  // 0.014 for textiles.
 
     deltaL := l1 - l2
     c1 := math.Sqrt(sq(a1) + sq(b1))
     c2 := math.Sqrt(sq(a2) + sq(b2))
     deltaCab := c1 - c2
-    deltaHab := math.Sqrt(sq(a1-a2) + sq(b1-b2) - sq(deltaCab))
+
+    // Not taking Sqrt here for stability, and it's unnecessary.
+    deltaHab2 := sq(a1-a2) + sq(b1-b2) - sq(deltaCab)
     sl := 1.0
     sc := 1.0 + k1*c1
     sh := 1.0 + k2*c1
 
-    return math.Sqrt(sq(deltaL/(kl*sl)) + sq(deltaCab/sc) + sq(deltaHab/sh))
+    vL2 := sq(deltaL/(kl*sl))
+    vC2 := sq(deltaCab/(kc*sc))
+    vH2 := deltaHab2/sq(kh*sh)
+
+    return math.Sqrt(vL2 + vC2 + vH2)*0.01  // See above.
 }
 
 // BlendLab blends two colors in the L*a*b* color-space, which should result in a smoother blend.
@@ -627,6 +697,8 @@ func (col Color) LuvWhiteRef(wref [3]float64) (l, u, v float64) {
 
 // Generates a color by using data given in CIE L*u*v* space using D65 as reference white.
 // L* is in [0..1] and both u* and v* are in about [-1..1]
+// WARNING: many combinations of `l`, `a`, and `b` values do not have corresponding
+//          valid RGB values, check the FAQ in the README if you're unsure.
 func Luv(l, u, v float64) Color {
     return Xyz(LuvToXyz(l, u, v))
 }
@@ -692,6 +764,8 @@ func (col Color) HclWhiteRef(wref [3]float64) (h, c, l float64) {
 
 // Generates a color by using data given in HCL space using D65 as reference white.
 // H values are in [0..360], C and L values are in [0..1]
+// WARNING: many combinations of `l`, `a`, and `b` values do not have corresponding
+//          valid RGB values, check the FAQ in the README if you're unsure.
 func Hcl(h, c, l float64) Color {
     return HclWhiteRef(h, c, l, D65)
 }
@@ -719,17 +793,5 @@ func (col1 Color) BlendHcl(col2 Color, t float64) Color {
     h2, c2, l2 := col2.Hcl()
 
     // We know that h are both in [0..360]
-    var H float64
-    if math.Abs(h2 - h1) <= 180.0 {
-        // Won't wrap
-        H = h1 + t*(h2-h1)
-    } else if h1 < h2 {
-        // Will wrap
-        H = math.Mod(h1 + 360.0 + t*(h2 - h1 - 360.0), 360.0)
-    } else {
-        // Will wrap
-        H = math.Mod(h2 + 360.0 + t*(h1 - h2 - 360.0), 360.0)
-    }
-
-    return Hcl(H, c1 + t*(c2 - c1), l1 + t*(l2 - l1))
+    return Hcl(interp_angle(h1, h2, t), c1 + t*(c2 - c1), l1 + t*(l2 - l1))
 }
