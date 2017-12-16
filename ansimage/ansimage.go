@@ -64,7 +64,7 @@ const (
 
 // ANSImage block size in pixels (dithering mode)
 const (
-	BlockSizeY = 16
+	BlockSizeY = 8
 	BlockSizeX = 4
 )
 

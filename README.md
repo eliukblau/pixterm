@@ -2,13 +2,13 @@
    ___  _____  ____
   / _ \/  _/ |/_/ /____ ______ _    Made with love by Eliuk Blau
  / ___// /_>  </ __/ -_) __/  ' \   github.com/eliukblau/pixterm
-/_/  /___/_/|_|\__/\__/_/ /_/_/_/   v1.2.0
+/_/  /___/_/|_|\__/\__/_/ /_/_/_/   v1.2.1
 
 ```
 
 # `PIXterm` - *draw images in your ANSI terminal with true color*
 
-**`PIXterm`** ***shows images directly in your terminal***, recreating the pixels through a combination of [ANSI character background color](http://en.wikipedia.org/wiki/ANSI_escape_code#Colors) and the [unicode lower half block element](http://en.wikipedia.org/wiki/Block_Elements). If image has transparency, an optional matte color can be used for background. Also, you can specify a dithering mode; in which case, the image is rendered using block elements with different shades, or using standar ASCII characters in the same way. In dithering mode, the matte color is used to fill background of the blocks o characters.
+**`PIXterm`** ***shows images directly in your terminal***, recreating the pixels through a combination of [ANSI character background color](http://en.wikipedia.org/wiki/ANSI_escape_code#Colors) and the [unicode lower half block element](http://en.wikipedia.org/wiki/Block_Elements). If image has transparency, an optional matte color can be used for background. Also, you can specify a dithering mode; in which case, the image is rendered using block elements with different shades, or using standard ASCII characters in the same way. In dithering mode, the matte color is used to fill the background of the blocks or characters.
 
 The conversion process runs fast because it is parallelized in all CPUs.
 
@@ -73,6 +73,10 @@ All dependencies are directly included in the project via [Go's Vendor Directori
 Run this command to automatically download sources and install **`PIXterm`** binary in your `$GOPATH/bin` directory:
 
 `go get -u github.com/eliukblau/pixterm`
+
+If you use Arch Linux, `eigengrau` has kindly created an AUR package for **`PIXterm`** (thanks man!). Run this command to install it:
+
+`yaourt -S pixterm-git`
 
 #### About
 
