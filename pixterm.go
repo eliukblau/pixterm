@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	pxtVersion = "1.2.1"
+	pxtVersion = "1.2.2"
 	pxtLogo    = `
 
    ___  _____  ____
@@ -49,7 +49,6 @@ var (
 
 func main() {
 	validateFlags()
-	checkTerminal()
 	runPixterm()
 }
 
@@ -104,8 +103,8 @@ func configureFlags() {
 	flag.CommandLine.UintVar(&flagDither, "d", 0, "dithering `mode`:\n\t  0 - no dithering (default)\n\t  1 - with blocks\n\t  2 - with chars")
 	flag.CommandLine.StringVar(&flagMatte, "m", "", "matte `color` for transparency or background\n\t(optional, hex format, default: 000000)")
 	flag.CommandLine.UintVar(&flagScale, "s", 0, "scale `method`:\n\t  0 - resize (default)\n\t  1 - fill\n\t  2 - fit")
-	flag.CommandLine.UintVar(&flagRows, "tr", 0, "terminal `rows` (optional, >=2)")
-	flag.CommandLine.UintVar(&flagCols, "tc", 0, "terminal `columns` (optional, >=2)")
+	flag.CommandLine.UintVar(&flagRows, "tr", 0, "terminal `rows` (optional, >=2; when piping, default: 24)")
+	flag.CommandLine.UintVar(&flagCols, "tc", 0, "terminal `columns` (optional, >=2; when piping, default: 80)")
 
 	flag.CommandLine.Parse(os.Args[1:])
 }
@@ -138,14 +137,16 @@ func validateFlags() {
 	}
 }
 
-func checkTerminal() {
-	if !terminal.IsTerminal(int(os.Stdout.Fd())) {
-		throwError(1, "Not running on terminal :(")
-	}
+func isTerminal() bool {
+	return terminal.IsTerminal(int(os.Stdout.Fd()))
 }
 
 func getTerminalSize() (width, height int, err error) {
-	return terminal.GetSize(int(os.Stdout.Fd()))
+	if isTerminal() {
+		return terminal.GetSize(int(os.Stdout.Fd()))
+	}
+	// fallback when piping to a file!
+	return 80, 24, nil // VT100 terminal size
 }
 
 func runPixterm() {
