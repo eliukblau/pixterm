@@ -23,7 +23,7 @@ import (
 	"io"
 	"os"
 	"strings"
-
+	"net/http"
 	"github.com/disintegration/imaging"
 	"github.com/lucasb-eyer/go-colorful"
 	_ "golang.org/x/image/bmp"  // initialize decoder
@@ -382,6 +382,17 @@ func NewFromFile(name string, bg color.Color, dm DitheringMode) (*ANSImage, erro
 	}
 	defer reader.Close()
 	return NewFromReader(reader, bg, dm)
+}
+
+// NewScaledFromURL created a new ANSImage from a network file 
+// See NewScaledFromFile 
+func NewScaledFromURL(url string, y, x int, bg color.Color, sm ScaleMode, dm DitheringMode) (*ANSImage, error) {
+	res, err := http.Get(url)
+	if (err != nil) {
+		return nil,err
+	}
+	defer res.Body.Close()
+	return NewScaledFromReader(res.Body, y, x, bg, sm, dm)
 }
 
 // NewScaledFromFile creates a new scaled ANSImage from a file.

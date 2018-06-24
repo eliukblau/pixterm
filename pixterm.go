@@ -21,7 +21,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/eliukblau/pixterm/ansimage"
+	"pixterm/ansimage"
 	"github.com/lucasb-eyer/go-colorful"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -192,7 +192,13 @@ func runPixterm() {
 
 	// create new ANSImage from file
 	file := flag.CommandLine.Arg(0)
-	pix, err = ansimage.NewScaledFromFile(file, sfy*ty, sfx*tx, mc, sm, dm)
+	fmt.Println(strings.HasPrefix(file, "https://"))
+
+	if strings.HasPrefix(file, "https://") || strings.HasPrefix(file, "http://") {
+		pix, err = ansimage.NewScaledFromURL(file, sfy*ty, sfx*tx, mc, sm, dm)	
+	} else {
+		pix, err = ansimage.NewScaledFromFile(file, sfy*ty, sfx*tx, mc, sm, dm)
+	}
 	if err != nil {
 		throwError(1, err)
 	}
