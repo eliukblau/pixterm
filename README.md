@@ -74,9 +74,17 @@ Run this command to automatically download sources and install **`PIXterm`** bin
 
 `go get -u github.com/eliukblau/pixterm`
 
-If you use Arch Linux, `eigengrau` has kindly created an AUR package for **`PIXterm`** (thanks man!). Run this command to install it:
+#### Example
 
-`yaourt -S pixterm-git`
+- network image
+```
+pixterm https://ssl.ptlogin2.qq.com/ptqrshow\?appid\=501004106\&e\=2\&l\=M\&s\=3\&d\=72\&v\=4\&t\=0.20107062789081742\&daid\=164\&pt_3rd_aid\=0
+```
+
+- local image
+```
+pixterm /temp/example.jpg
+```
 
 #### About
 
