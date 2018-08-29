@@ -98,21 +98,25 @@ type DitheringMode uint8
 
 // ANSIpixel represents a pixel of an ANSImage.
 type ANSIpixel struct {
-	Brightness uint8
-	R, G, B    uint8
-	upper      bool
-	source     *ANSImage
+	Brightness  uint8
+	R, G, B     uint8
+	upper       bool
+	source      *ANSImage
+	PrintSrc    bool
+	Transparent bool
 }
 
 // ANSImage represents an image encoded in ANSI escape codes.
 type ANSImage struct {
-	h, w      int
-	maxprocs  int
-	bgR       uint8
-	bgG       uint8
-	bgB       uint8
-	dithering DitheringMode
-	pixmap    [][]*ANSIpixel
+	h, w        int
+	maxprocs    int
+	bgR         uint8
+	bgG         uint8
+	bgB         uint8
+	dithering   DitheringMode
+	pixmap      [][]*ANSIpixel
+	PrintSrc    bool
+	Transparent bool
 }
 
 // Render returns the ANSI-compatible string form of ANSI-pixel.
@@ -120,16 +124,31 @@ func (ap *ANSIpixel) Render() string {
 	// WITHOUT DITHERING
 	if ap.source.dithering == NoDithering {
 		if ap.upper {
+			if ap.PrintSrc {
+				return fmt.Sprintf(
+					"\\033[48;2;%d;%d;%dm",
+					ap.R, ap.G, ap.B,
+				)
+			} else {
+				return fmt.Sprintf(
+					"\033[48;2;%d;%d;%dm",
+					ap.R, ap.G, ap.B,
+				)
+			}
+		}
+		if ap.PrintSrc {
 			return fmt.Sprintf(
-				"\033[48;2;%d;%d;%dm",
+				"\\033[38;2;%d;%d;%dm%s",
 				ap.R, ap.G, ap.B,
+				lowerHalfBlock,
+			)
+		} else {
+			return fmt.Sprintf(
+				"\033[38;2;%d;%d;%dm%s",
+				ap.R, ap.G, ap.B,
+				lowerHalfBlock,
 			)
 		}
-		return fmt.Sprintf(
-			"\033[38;2;%d;%d;%dm%s",
-			ap.R, ap.G, ap.B,
-			lowerHalfBlock,
-		)
 	}
 
 	// WITH DITHERING
@@ -172,12 +191,36 @@ func (ap *ANSIpixel) Render() string {
 		panic(errUnknownDitheringMode)
 	}
 
-	return fmt.Sprintf(
-		"\033[48;2;%d;%d;%dm\033[38;2;%d;%d;%dm%s",
-		ap.source.bgR, ap.source.bgG, ap.source.bgB,
-		ap.R, ap.G, ap.B,
-		block,
-	)
+	if ap.PrintSrc {
+		bgStr := fmt.Sprintf(
+			"\\033[48;2;%d;%d;%dm",
+			ap.source.bgR, ap.source.bgG, ap.source.bgB,
+		)
+		if ap.Transparent {
+			bgStr = ""
+		}
+
+		return fmt.Sprintf(
+			"%s\\033[38;2;%d;%d;%dm%s",
+			bgStr,
+			ap.R, ap.G, ap.B,
+			block,
+		)
+	} else {
+		bgStr := fmt.Sprintf(
+			"\033[48;2;%d;%d;%dm",
+			ap.source.bgR, ap.source.bgG, ap.source.bgB,
+		)
+		if ap.Transparent {
+			bgStr = ""
+		}
+		return fmt.Sprintf(
+			"%s\033[38;2;%d;%d;%dm%s",
+			bgStr,
+			ap.R, ap.G, ap.B,
+			block,
+		)
+	}
 }
 
 // Height gets total rows of ANSImage.
@@ -252,10 +295,19 @@ func (ai *ANSImage) Render() string {
 				go func(r, y int) {
 					var str string
 					for x := 0; x < ai.w; x++ {
-						str += ai.pixmap[y][x].Render()   // upper pixel
+						ai.pixmap[y][x].PrintSrc = ai.PrintSrc
+						ai.pixmap[y][x].Transparent = ai.Transparent
+						str += ai.pixmap[y][x].Render() // upper pixel
+						ai.pixmap[y+1][x].PrintSrc = ai.PrintSrc
+						ai.pixmap[y+1][x].Transparent = ai.Transparent
 						str += ai.pixmap[y+1][x].Render() // lower pixel
 					}
-					str += "\033[0m\n" // reset ansi style
+					if ai.PrintSrc {
+						str += "\\033[0m\\n" // reset ansi style
+					} else {
+						str += "\033[0m\n" // reset ansi style
+
+					}
 					ch <- renderData{row: r, render: str}
 				}(r, 2*r)
 				// DEBUG:
@@ -281,9 +333,15 @@ func (ai *ANSImage) Render() string {
 			go func(y int) {
 				var str string
 				for x := 0; x < ai.w; x++ {
+					ai.pixmap[y][x].PrintSrc = ai.PrintSrc
+					ai.pixmap[y][x].Transparent = ai.Transparent
 					str += ai.pixmap[y][x].Render()
 				}
-				str += "\033[0m\n" // reset ansi style
+				if ai.PrintSrc {
+					str += "\\033[0m\\n" // reset ansi style
+				} else {
+					str += "\033[0m\n" // reset ansi style
+				}
 				ch <- renderData{row: y, render: str}
 			}(r)
 		}

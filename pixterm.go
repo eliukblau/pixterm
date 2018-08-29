@@ -40,12 +40,14 @@ const (
 )
 
 var (
-	flagCredits bool
-	flagDither  uint
-	flagMatte   string
-	flagScale   uint
-	flagRows    uint
-	flagCols    uint
+	flagCredits  bool
+	flagPrintSrc bool
+	flagTrans    bool
+	flagDither   uint
+	flagMatte    string
+	flagScale    uint
+	flagRows     uint
+	flagCols     uint
 )
 
 func main() {
@@ -113,6 +115,8 @@ func configureFlags() {
 	flag.CommandLine.UintVar(&flagScale, "s", 0, "scale `method`:\n   0 - resize (default)\n   1 - fill\n   2 - fit")
 	flag.CommandLine.UintVar(&flagRows, "tr", 0, "terminal `rows` (optional, >=2; when piping, default: 24)")
 	flag.CommandLine.UintVar(&flagCols, "tc", 0, "terminal `columns` (optional, >=2; when piping, default: 80)")
+	flag.CommandLine.BoolVar(&flagPrintSrc, "code", false, "outputs code to 'Printf' image from your app")
+	flag.CommandLine.BoolVar(&flagTrans, "trans", false, "transparent background")
 
 	flag.CommandLine.Parse(os.Args[1:])
 }
@@ -209,8 +213,11 @@ func runPixterm() {
 		throwError(1, err)
 	}
 
+	pix.PrintSrc = flagPrintSrc
+	pix.Transparent = flagTrans
 	// draw ANSImage to terminal
 	if isTerminal() {
+		ansimage.EnableColorsInTerminal()
 		ansimage.ClearTerminal()
 	}
 	pix.SetMaxProcs(runtime.NumCPU()) // maximum number of parallel goroutines!
