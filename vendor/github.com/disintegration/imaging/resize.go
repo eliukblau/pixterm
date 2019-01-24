@@ -24,17 +24,17 @@ func precomputeWeights(dstSize, srcSize int, filter ResampleFilter) [][]indexWei
 	for v := 0; v < dstSize; v++ {
 		fu := (float64(v)+0.5)*du - 0.5
 
-		startu := int(math.Ceil(fu - ru))
-		if startu < 0 {
-			startu = 0
+		begin := int(math.Ceil(fu - ru))
+		if begin < 0 {
+			begin = 0
 		}
-		endu := int(math.Floor(fu + ru))
-		if endu > srcSize-1 {
-			endu = srcSize - 1
+		end := int(math.Floor(fu + ru))
+		if end > srcSize-1 {
+			end = srcSize - 1
 		}
 
 		var sum float64
-		for u := startu; u <= endu; u++ {
+		for u := begin; u <= end; u++ {
 			w := filter.Kernel((float64(u) - fu) / scale)
 			if w != 0 {
 				sum += w
@@ -67,7 +67,6 @@ func precomputeWeights(dstSize, srcSize int, filter ResampleFilter) [][]indexWei
 //
 func Resize(img image.Image, width, height int, filter ResampleFilter) *image.NRGBA {
 	dstW, dstH := width, height
-
 	if dstW < 0 || dstH < 0 {
 		return &image.NRGBA{}
 	}
@@ -75,16 +74,13 @@ func Resize(img image.Image, width, height int, filter ResampleFilter) *image.NR
 		return &image.NRGBA{}
 	}
 
-	src := toNRGBA(img)
-
-	srcW := src.Bounds().Max.X
-	srcH := src.Bounds().Max.Y
-
+	srcW := img.Bounds().Dx()
+	srcH := img.Bounds().Dy()
 	if srcW <= 0 || srcH <= 0 {
 		return &image.NRGBA{}
 	}
 
-	// if new width or height is 0 then preserve aspect ratio, minimum 1px
+	// If new width or height is 0 then preserve aspect ratio, minimum 1px.
 	if dstW == 0 {
 		tmpW := float64(dstH) * float64(srcW) / float64(srcH)
 		dstW = int(math.Max(1.0, math.Floor(tmpW+0.5)))
@@ -94,143 +90,127 @@ func Resize(img image.Image, width, height int, filter ResampleFilter) *image.NR
 		dstH = int(math.Max(1.0, math.Floor(tmpH+0.5)))
 	}
 
-	var dst *image.NRGBA
-
-	if filter.Support <= 0.0 {
-		// nearest-neighbor special case
-		dst = resizeNearest(src, dstW, dstH)
-
-	} else {
-		// two-pass resize
-		if srcW != dstW {
-			dst = resizeHorizontal(src, dstW, filter)
-		} else {
-			dst = src
-		}
-
-		if srcH != dstH {
-			dst = resizeVertical(dst, dstH, filter)
-		}
+	if filter.Support <= 0 {
+		// Nearest-neighbor special case.
+		return resizeNearest(img, dstW, dstH)
 	}
 
-	return dst
+	if srcW != dstW && srcH != dstH {
+		return resizeVertical(resizeHorizontal(img, dstW, filter), dstH, filter)
+	}
+	if srcW != dstW {
+		return resizeHorizontal(img, dstW, filter)
+	}
+	if srcH != dstH {
+		return resizeVertical(img, dstH, filter)
+	}
+	return Clone(img)
 }
 
-func resizeHorizontal(src *image.NRGBA, width int, filter ResampleFilter) *image.NRGBA {
-	srcBounds := src.Bounds()
-	srcW := srcBounds.Max.X
-	srcH := srcBounds.Max.Y
-
-	dstW := width
-	dstH := srcH
-
-	dst := image.NewNRGBA(image.Rect(0, 0, dstW, dstH))
-
-	weights := precomputeWeights(dstW, srcW, filter)
-
-	parallel(dstH, func(partStart, partEnd int) {
-		for dstY := partStart; dstY < partEnd; dstY++ {
-			i0 := dstY * src.Stride
-			j0 := dstY * dst.Stride
-			for dstX := 0; dstX < dstW; dstX++ {
+func resizeHorizontal(img image.Image, width int, filter ResampleFilter) *image.NRGBA {
+	src := newScanner(img)
+	dst := image.NewNRGBA(image.Rect(0, 0, width, src.h))
+	weights := precomputeWeights(width, src.w, filter)
+	parallel(0, src.h, func(ys <-chan int) {
+		scanLine := make([]uint8, src.w*4)
+		for y := range ys {
+			src.scan(0, y, src.w, y+1, scanLine)
+			j0 := y * dst.Stride
+			for x := range weights {
 				var r, g, b, a float64
-				for _, w := range weights[dstX] {
-					i := i0 + w.index*4
-					aw := float64(src.Pix[i+3]) * w.weight
-					r += float64(src.Pix[i+0]) * aw
-					g += float64(src.Pix[i+1]) * aw
-					b += float64(src.Pix[i+2]) * aw
+				for _, w := range weights[x] {
+					i := w.index * 4
+					s := scanLine[i : i+4 : i+4]
+					aw := float64(s[3]) * w.weight
+					r += float64(s[0]) * aw
+					g += float64(s[1]) * aw
+					b += float64(s[2]) * aw
 					a += aw
 				}
 				if a != 0 {
 					aInv := 1 / a
-					j := j0 + dstX*4
-					dst.Pix[j+0] = clamp(r * aInv)
-					dst.Pix[j+1] = clamp(g * aInv)
-					dst.Pix[j+2] = clamp(b * aInv)
-					dst.Pix[j+3] = clamp(a)
+					j := j0 + x*4
+					d := dst.Pix[j : j+4 : j+4]
+					d[0] = clamp(r * aInv)
+					d[1] = clamp(g * aInv)
+					d[2] = clamp(b * aInv)
+					d[3] = clamp(a)
 				}
 			}
 		}
 	})
-
 	return dst
 }
 
-func resizeVertical(src *image.NRGBA, height int, filter ResampleFilter) *image.NRGBA {
-	srcBounds := src.Bounds()
-	srcW := srcBounds.Max.X
-	srcH := srcBounds.Max.Y
-
-	dstW := srcW
-	dstH := height
-
-	dst := image.NewNRGBA(image.Rect(0, 0, dstW, dstH))
-
-	weights := precomputeWeights(dstH, srcH, filter)
-
-	parallel(dstW, func(partStart, partEnd int) {
-		for dstX := partStart; dstX < partEnd; dstX++ {
-			for dstY := 0; dstY < dstH; dstY++ {
+func resizeVertical(img image.Image, height int, filter ResampleFilter) *image.NRGBA {
+	src := newScanner(img)
+	dst := image.NewNRGBA(image.Rect(0, 0, src.w, height))
+	weights := precomputeWeights(height, src.h, filter)
+	parallel(0, src.w, func(xs <-chan int) {
+		scanLine := make([]uint8, src.h*4)
+		for x := range xs {
+			src.scan(x, 0, x+1, src.h, scanLine)
+			for y := range weights {
 				var r, g, b, a float64
-				for _, w := range weights[dstY] {
-					i := w.index*src.Stride + dstX*4
-					aw := float64(src.Pix[i+3]) * w.weight
-					r += float64(src.Pix[i+0]) * aw
-					g += float64(src.Pix[i+1]) * aw
-					b += float64(src.Pix[i+2]) * aw
+				for _, w := range weights[y] {
+					i := w.index * 4
+					s := scanLine[i : i+4 : i+4]
+					aw := float64(s[3]) * w.weight
+					r += float64(s[0]) * aw
+					g += float64(s[1]) * aw
+					b += float64(s[2]) * aw
 					a += aw
 				}
 				if a != 0 {
 					aInv := 1 / a
-					j := dstY*dst.Stride + dstX*4
-					dst.Pix[j+0] = clamp(r * aInv)
-					dst.Pix[j+1] = clamp(g * aInv)
-					dst.Pix[j+2] = clamp(b * aInv)
-					dst.Pix[j+3] = clamp(a)
+					j := y*dst.Stride + x*4
+					d := dst.Pix[j : j+4 : j+4]
+					d[0] = clamp(r * aInv)
+					d[1] = clamp(g * aInv)
+					d[2] = clamp(b * aInv)
+					d[3] = clamp(a)
 				}
 			}
 		}
 	})
-
 	return dst
 }
 
 // resizeNearest is a fast nearest-neighbor resize, no filtering.
-func resizeNearest(src *image.NRGBA, width, height int) *image.NRGBA {
-	dstW, dstH := width, height
+func resizeNearest(img image.Image, width, height int) *image.NRGBA {
+	dst := image.NewNRGBA(image.Rect(0, 0, width, height))
+	dx := float64(img.Bounds().Dx()) / float64(width)
+	dy := float64(img.Bounds().Dy()) / float64(height)
 
-	srcBounds := src.Bounds()
-	srcW := srcBounds.Max.X
-	srcH := srcBounds.Max.Y
-
-	dst := image.NewNRGBA(image.Rect(0, 0, dstW, dstH))
-
-	dx := float64(srcW) / float64(dstW)
-	dy := float64(srcH) / float64(dstH)
-
-	parallel(dstH, func(partStart, partEnd int) {
-
-		for dstY := partStart; dstY < partEnd; dstY++ {
-			srcY := int((float64(dstY) + 0.5) * dy)
-			if srcY > srcH-1 {
-				srcY = srcH - 1
-			}
-
-			for dstX := 0; dstX < dstW; dstX++ {
-				srcX := int((float64(dstX) + 0.5) * dx)
-				if srcX > srcW-1 {
-					srcX = srcW - 1
+	if dx > 1 && dy > 1 {
+		src := newScanner(img)
+		parallel(0, height, func(ys <-chan int) {
+			for y := range ys {
+				srcY := int((float64(y) + 0.5) * dy)
+				dstOff := y * dst.Stride
+				for x := 0; x < width; x++ {
+					srcX := int((float64(x) + 0.5) * dx)
+					src.scan(srcX, srcY, srcX+1, srcY+1, dst.Pix[dstOff:dstOff+4])
+					dstOff += 4
 				}
-
-				srcOff := srcY*src.Stride + srcX*4
-				dstOff := dstY*dst.Stride + dstX*4
-
-				copy(dst.Pix[dstOff:dstOff+4], src.Pix[srcOff:srcOff+4])
 			}
-		}
-
-	})
+		})
+	} else {
+		src := toNRGBA(img)
+		parallel(0, height, func(ys <-chan int) {
+			for y := range ys {
+				srcY := int((float64(y) + 0.5) * dy)
+				srcOff0 := srcY * src.Stride
+				dstOff := y * dst.Stride
+				for x := 0; x < width; x++ {
+					srcX := int((float64(x) + 0.5) * dx)
+					srcOff := srcOff0 + srcX*4
+					copy(dst.Pix[dstOff:dstOff+4], src.Pix[srcOff:srcOff+4])
+					dstOff += 4
+				}
+			}
+		})
+	}
 
 	return dst
 }
@@ -279,9 +259,8 @@ func Fit(img image.Image, width, height int, filter ResampleFilter) *image.NRGBA
 	return Resize(img, newW, newH, filter)
 }
 
-// Fill scales the image to the smallest possible size that will cover the specified dimensions,
-// crops the resized image to the specified dimensions using the given anchor point and returns
-// the transformed image.
+// Fill creates an image with the specified dimensions and fills it with the scaled source image.
+// To achieve the correct aspect ratio without stretching, the source image will be cropped.
 //
 // Supported resample filters: NearestNeighbor, Box, Linear, Hermite, MitchellNetravali,
 // CatmullRom, BSpline, Gaussian, Lanczos, Hann, Hamming, Blackman, Bartlett, Welch, Cosine.
@@ -291,9 +270,9 @@ func Fit(img image.Image, width, height int, filter ResampleFilter) *image.NRGBA
 //	dstImage := imaging.Fill(srcImage, 800, 600, imaging.Center, imaging.Lanczos)
 //
 func Fill(img image.Image, width, height int, anchor Anchor, filter ResampleFilter) *image.NRGBA {
-	minW, minH := width, height
+	dstW, dstH := width, height
 
-	if minW <= 0 || minH <= 0 {
+	if dstW <= 0 || dstH <= 0 {
 		return &image.NRGBA{}
 	}
 
@@ -305,21 +284,61 @@ func Fill(img image.Image, width, height int, anchor Anchor, filter ResampleFilt
 		return &image.NRGBA{}
 	}
 
-	if srcW == minW && srcH == minH {
+	if srcW == dstW && srcH == dstH {
 		return Clone(img)
 	}
 
+	if srcW >= 100 && srcH >= 100 {
+		return cropAndResize(img, dstW, dstH, anchor, filter)
+	}
+	return resizeAndCrop(img, dstW, dstH, anchor, filter)
+}
+
+// cropAndResize crops the image to the smallest possible size that has the required aspect ratio using
+// the given anchor point, then scales it to the specified dimensions and returns the transformed image.
+//
+// This is generally faster than resizing first, but may result in inaccuracies when used on small source images.
+func cropAndResize(img image.Image, width, height int, anchor Anchor, filter ResampleFilter) *image.NRGBA {
+	dstW, dstH := width, height
+
+	srcBounds := img.Bounds()
+	srcW := srcBounds.Dx()
+	srcH := srcBounds.Dy()
 	srcAspectRatio := float64(srcW) / float64(srcH)
-	minAspectRatio := float64(minW) / float64(minH)
+	dstAspectRatio := float64(dstW) / float64(dstH)
 
 	var tmp *image.NRGBA
-	if srcAspectRatio < minAspectRatio {
-		tmp = Resize(img, minW, 0, filter)
+	if srcAspectRatio < dstAspectRatio {
+		cropH := float64(srcW) * float64(dstH) / float64(dstW)
+		tmp = CropAnchor(img, srcW, int(math.Max(1, cropH)+0.5), anchor)
 	} else {
-		tmp = Resize(img, 0, minH, filter)
+		cropW := float64(srcH) * float64(dstW) / float64(dstH)
+		tmp = CropAnchor(img, int(math.Max(1, cropW)+0.5), srcH, anchor)
 	}
 
-	return CropAnchor(tmp, minW, minH, anchor)
+	return Resize(tmp, dstW, dstH, filter)
+}
+
+// resizeAndCrop resizes the image to the smallest possible size that will cover the specified dimensions,
+// crops the resized image to the specified dimensions using the given anchor point and returns
+// the transformed image.
+func resizeAndCrop(img image.Image, width, height int, anchor Anchor, filter ResampleFilter) *image.NRGBA {
+	dstW, dstH := width, height
+
+	srcBounds := img.Bounds()
+	srcW := srcBounds.Dx()
+	srcH := srcBounds.Dy()
+	srcAspectRatio := float64(srcW) / float64(srcH)
+	dstAspectRatio := float64(dstW) / float64(dstH)
+
+	var tmp *image.NRGBA
+	if srcAspectRatio < dstAspectRatio {
+		tmp = Resize(img, dstW, 0, filter)
+	} else {
+		tmp = Resize(img, 0, dstH, filter)
+	}
+
+	return CropAnchor(tmp, dstW, dstH, anchor)
 }
 
 // Thumbnail scales the image up or down using the specified resample filter, crops it
@@ -344,27 +363,28 @@ func Thumbnail(img image.Image, width, height int, filter ResampleFilter) *image
 //	General filter recommendations:
 //
 //	- Lanczos
-//		Probably the best resampling filter for photographic images yielding sharp results,
-//		but it's slower than cubic filters (see below).
+//		High-quality resampling filter for photographic images yielding sharp results.
+//		It's slower than cubic filters (see below).
 //
 //	- CatmullRom
 //		A sharp cubic filter. It's a good filter for both upscaling and downscaling if sharp results are needed.
 //
 //	- MitchellNetravali
-//		A high quality cubic filter that produces smoother results with less ringing than CatmullRom.
+//		A high quality cubic filter that produces smoother results with less ringing artifacts than CatmullRom.
 //
 //	- BSpline
 //		A good filter if a very smooth output is needed.
 //
 //	- Linear
-//		Bilinear interpolation filter, produces reasonably good, smooth output. It's faster than cubic filters.
+//		Bilinear interpolation filter, produces reasonably good, smooth output.
+//		It's faster than cubic filters.
 //
 //	- Box
-//		Simple and fast resampling filter appropriate for downscaling.
+//		Simple and fast averaging filter appropriate for downscaling.
 //		When upscaling it's similar to NearestNeighbor.
 //
 //	- NearestNeighbor
-//		Fastest resample filter, no antialiasing at all. Rarely used.
+//		Fastest resampling filter, no antialiasing.
 //
 type ResampleFilter struct {
 	Support float64
@@ -417,14 +437,14 @@ var Welch ResampleFilter
 var Cosine ResampleFilter
 
 func bcspline(x, b, c float64) float64 {
+	var y float64
 	x = math.Abs(x)
 	if x < 1.0 {
-		return ((12-9*b-6*c)*x*x*x + (-18+12*b+6*c)*x*x + (6 - 2*b)) / 6
+		y = ((12-9*b-6*c)*x*x*x + (-18+12*b+6*c)*x*x + (6 - 2*b)) / 6
+	} else if x < 2.0 {
+		y = ((-b-6*c)*x*x*x + (6*b+30*c)*x*x + (-12*b-48*c)*x + (8*b + 24*c)) / 6
 	}
-	if x < 2.0 {
-		return ((-b-6*c)*x*x*x + (6*b+30*c)*x*x + (-12*b-48*c)*x + (8*b + 24*c)) / 6
-	}
-	return 0
+	return y
 }
 
 func sinc(x float64) float64 {

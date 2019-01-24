@@ -2,12 +2,13 @@ package imaging
 
 import (
 	"image"
+	"image/color"
 	"testing"
 )
 
 func TestGrayscale(t *testing.T) {
-	td := []struct {
-		desc string
+	testCases := []struct {
+		name string
 		src  image.Image
 		want *image.NRGBA
 	}{
@@ -33,18 +34,26 @@ func TestGrayscale(t *testing.T) {
 			},
 		},
 	}
-	for _, d := range td {
-		got := Grayscale(d.src)
-		want := d.want
-		if !compareNRGBA(got, want, 0) {
-			t.Errorf("test [%s] failed: %#v", d.desc, got)
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := Grayscale(tc.src)
+			if !compareNRGBA(got, tc.want, 0) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
+	}
+}
+
+func BenchmarkGrayscale(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		Grayscale(testdataBranchesJPG)
 	}
 }
 
 func TestInvert(t *testing.T) {
-	td := []struct {
-		desc string
+	testCases := []struct {
+		name string
 		src  image.Image
 		want *image.NRGBA
 	}{
@@ -70,18 +79,177 @@ func TestInvert(t *testing.T) {
 			},
 		},
 	}
-	for _, d := range td {
-		got := Invert(d.src)
-		want := d.want
-		if !compareNRGBA(got, want, 0) {
-			t.Errorf("test [%s] failed: %#v", d.desc, got)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := Invert(tc.src)
+			if !compareNRGBA(got, tc.want, 0) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
+	}
+}
+
+func BenchmarkInvert(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		Invert(testdataBranchesJPG)
+	}
+}
+
+func TestAdjustSaturation(t *testing.T) {
+	testCases := []struct {
+		name string
+		src  image.Image
+		p    float64
+		want *image.NRGBA
+	}{
+		{
+			"AdjustSaturation 3x3 10",
+			&image.NRGBA{
+				Rect:   image.Rect(-1, -1, 2, 2),
+				Stride: 3 * 4,
+				Pix: []uint8{
+					0xcc, 0x00, 0x00, 0x01, 0x00, 0xcc, 0x00, 0x02, 0x00, 0x00, 0xcc, 0x03,
+					0x11, 0x22, 0x33, 0xff, 0x33, 0x22, 0x11, 0xff, 0xaa, 0x33, 0xbb, 0xff,
+					0x00, 0x00, 0x00, 0xff, 0x33, 0x33, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff,
+				},
+			},
+			10,
+			&image.NRGBA{
+				Rect:   image.Rect(0, 0, 3, 3),
+				Stride: 3 * 4,
+				Pix: []uint8{
+					0xcc, 0x00, 0x00, 0x01, 0x00, 0xcc, 0x00, 0x02, 0x00, 0x00, 0xcc, 0x03,
+					0x0f, 0x22, 0x35, 0xff, 0x35, 0x22, 0x0f, 0xff, 0xaf, 0x2c, 0xc2, 0xff,
+					0x00, 0x00, 0x00, 0xff, 0x33, 0x33, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff,
+				},
+			},
+		},
+		{
+			"AdjustSaturation 3x3 100",
+			&image.NRGBA{
+				Rect:   image.Rect(-1, -1, 2, 2),
+				Stride: 3 * 4,
+				Pix: []uint8{
+					0xcc, 0x00, 0x00, 0x01, 0x00, 0xcc, 0x00, 0x02, 0x00, 0x00, 0xcc, 0x03,
+					0x11, 0x22, 0x33, 0xff, 0x33, 0x22, 0x11, 0xff, 0xaa, 0x33, 0xbb, 0xff,
+					0x00, 0x00, 0x00, 0xff, 0x33, 0x33, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff,
+				},
+			},
+			100,
+			&image.NRGBA{
+				Rect:   image.Rect(0, 0, 3, 3),
+				Stride: 3 * 4,
+				Pix: []uint8{
+					0xcc, 0x00, 0x00, 0x01, 0x00, 0xcc, 0x00, 0x02, 0x00, 0x00, 0xcc, 0x03,
+					0x00, 0x22, 0x44, 0xff, 0x44, 0x22, 0x00, 0xff, 0xd0, 0x00, 0xee, 0xff,
+					0x00, 0x00, 0x00, 0xff, 0x33, 0x33, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff,
+				},
+			},
+		},
+		{
+			"AdjustSaturation 3x3 -10",
+			&image.NRGBA{
+				Rect:   image.Rect(-1, -1, 2, 2),
+				Stride: 3 * 4,
+				Pix: []uint8{
+					0xcc, 0x00, 0x00, 0x01, 0x00, 0xcc, 0x00, 0x02, 0x00, 0x00, 0xcc, 0x03,
+					0x11, 0x22, 0x33, 0xff, 0x33, 0x22, 0x11, 0xff, 0xaa, 0x33, 0xbb, 0xff,
+					0x00, 0x00, 0x00, 0xff, 0x33, 0x33, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff,
+				},
+			},
+			-10,
+			&image.NRGBA{
+				Rect:   image.Rect(0, 0, 3, 3),
+				Stride: 3 * 4,
+				Pix: []uint8{
+					0xc2, 0x0a, 0x0a, 0x01, 0x0a, 0xc2, 0x0a, 0x02, 0x0a, 0x0a, 0xc2, 0x03,
+					0x13, 0x22, 0x31, 0xff, 0x31, 0x22, 0x13, 0xff, 0xa5, 0x3a, 0xb4, 0xff,
+					0x00, 0x00, 0x00, 0xff, 0x33, 0x33, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff,
+				},
+			},
+		},
+		{
+			"AdjustSaturation 3x3 -100",
+			&image.NRGBA{
+				Rect:   image.Rect(-1, -1, 2, 2),
+				Stride: 3 * 4,
+				Pix: []uint8{
+					0xcc, 0x00, 0x00, 0x01, 0x00, 0xcc, 0x00, 0x02, 0x00, 0x00, 0xcc, 0x03,
+					0x11, 0x22, 0x33, 0xff, 0x33, 0x22, 0x11, 0xff, 0xaa, 0x33, 0xbb, 0xff,
+					0x00, 0x00, 0x00, 0xff, 0x33, 0x33, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff,
+				},
+			},
+			-100,
+			&image.NRGBA{
+				Rect:   image.Rect(0, 0, 3, 3),
+				Stride: 3 * 4,
+				Pix: []uint8{
+					0x66, 0x66, 0x66, 0x01, 0x66, 0x66, 0x66, 0x02, 0x66, 0x66, 0x66, 0x03,
+					0x22, 0x22, 0x22, 0xff, 0x22, 0x22, 0x22, 0xff, 0x77, 0x77, 0x77, 0xff,
+					0x00, 0x00, 0x00, 0xff, 0x33, 0x33, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff,
+				},
+			},
+		},
+		{
+			"AdjustSaturation 3x3 0",
+			&image.NRGBA{
+				Rect:   image.Rect(-1, -1, 2, 2),
+				Stride: 3 * 4,
+				Pix: []uint8{
+					0xcc, 0x00, 0x00, 0x01, 0x00, 0xcc, 0x00, 0x02, 0x00, 0x00, 0xcc, 0x03,
+					0x11, 0x22, 0x33, 0xff, 0x33, 0x22, 0x11, 0xff, 0xaa, 0x33, 0xbb, 0xff,
+					0x00, 0x00, 0x00, 0xff, 0x33, 0x33, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff,
+				},
+			},
+			0,
+			&image.NRGBA{
+				Rect:   image.Rect(0, 0, 3, 3),
+				Stride: 3 * 4,
+				Pix: []uint8{
+					0xcc, 0x00, 0x00, 0x01, 0x00, 0xcc, 0x00, 0x02, 0x00, 0x00, 0xcc, 0x03,
+					0x11, 0x22, 0x33, 0xff, 0x33, 0x22, 0x11, 0xff, 0xaa, 0x33, 0xbb, 0xff,
+					0x00, 0x00, 0x00, 0xff, 0x33, 0x33, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff,
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := AdjustSaturation(tc.src, tc.p)
+			if !compareNRGBA(got, tc.want, 0) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestAdjustSaturationGolden(t *testing.T) {
+	for name, p := range map[string]float64{
+		"out_saturation_m30.png": -30,
+		"out_saturation_p30.png": 30,
+	} {
+		got := AdjustSaturation(testdataFlowersSmallPNG, p)
+		want, err := Open("testdata/" + name)
+		if err != nil {
+			t.Fatalf("failed to open image: %v", err)
+		}
+		if !compareNRGBA(got, toNRGBA(want), 0) {
+			t.Errorf("resulting image differs from golden: %s", name)
 		}
 	}
 }
 
+func BenchmarkAdjustSaturation(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		AdjustSaturation(testdataBranchesJPG, 10)
+	}
+}
+
 func TestAdjustContrast(t *testing.T) {
-	td := []struct {
-		desc string
+	testCases := []struct {
+		name string
 		src  image.Image
 		p    float64
 		want *image.NRGBA
@@ -197,38 +365,42 @@ func TestAdjustContrast(t *testing.T) {
 			},
 		},
 	}
-	for _, d := range td {
-		got := AdjustContrast(d.src, d.p)
-		want := d.want
-		if !compareNRGBA(got, want, 0) {
-			t.Errorf("test [%s] failed: %#v", d.desc, got)
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := AdjustContrast(tc.src, tc.p)
+			if !compareNRGBA(got, tc.want, 0) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
 	}
 }
 
 func TestAdjustContrastGolden(t *testing.T) {
-	src, err := Open("testdata/lena_128.png")
-	if err != nil {
-		t.Errorf("Open: %v", err)
-	}
 	for name, p := range map[string]float64{
-		"out_contrast_m10.png": -10,
-		"out_contrast_p10.png": 10,
+		"out_contrast_m15.png": -15,
+		"out_contrast_p15.png": 15,
 	} {
-		got := AdjustContrast(src, p)
+		got := AdjustContrast(testdataFlowersSmallPNG, p)
 		want, err := Open("testdata/" + name)
 		if err != nil {
-			t.Errorf("Open: %v", err)
+			t.Fatalf("failed to open image: %v", err)
 		}
 		if !compareNRGBA(got, toNRGBA(want), 0) {
-			t.Errorf("resulting image differs from golden: %s", name)
+			t.Fatalf("resulting image differs from golden: %s", name)
 		}
 	}
 }
 
+func BenchmarkAdjustContrast(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		AdjustContrast(testdataBranchesJPG, 10)
+	}
+}
+
 func TestAdjustBrightness(t *testing.T) {
-	td := []struct {
-		desc string
+	testCases := []struct {
+		name string
 		src  image.Image
 		p    float64
 		want *image.NRGBA
@@ -344,38 +516,42 @@ func TestAdjustBrightness(t *testing.T) {
 			},
 		},
 	}
-	for _, d := range td {
-		got := AdjustBrightness(d.src, d.p)
-		want := d.want
-		if !compareNRGBA(got, want, 0) {
-			t.Errorf("test [%s] failed: %#v", d.desc, got)
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := AdjustBrightness(tc.src, tc.p)
+			if !compareNRGBA(got, tc.want, 0) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
 	}
 }
 
 func TestAdjustBrightnessGolden(t *testing.T) {
-	src, err := Open("testdata/lena_128.png")
-	if err != nil {
-		t.Errorf("Open: %v", err)
-	}
 	for name, p := range map[string]float64{
 		"out_brightness_m10.png": -10,
 		"out_brightness_p10.png": 10,
 	} {
-		got := AdjustBrightness(src, p)
+		got := AdjustBrightness(testdataFlowersSmallPNG, p)
 		want, err := Open("testdata/" + name)
 		if err != nil {
-			t.Errorf("Open: %v", err)
+			t.Fatalf("failed to open image: %v", err)
 		}
 		if !compareNRGBA(got, toNRGBA(want), 0) {
-			t.Errorf("resulting image differs from golden: %s", name)
+			t.Fatalf("resulting image differs from golden: %s", name)
 		}
 	}
 }
 
+func BenchmarkAdjustBrightness(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		AdjustBrightness(testdataBranchesJPG, 10)
+	}
+}
+
 func TestAdjustGamma(t *testing.T) {
-	td := []struct {
-		desc string
+	testCases := []struct {
+		name string
 		src  image.Image
 		p    float64
 		want *image.NRGBA
@@ -447,38 +623,42 @@ func TestAdjustGamma(t *testing.T) {
 			},
 		},
 	}
-	for _, d := range td {
-		got := AdjustGamma(d.src, d.p)
-		want := d.want
-		if !compareNRGBA(got, want, 0) {
-			t.Errorf("test [%s] failed: %#v", d.desc, got)
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := AdjustGamma(tc.src, tc.p)
+			if !compareNRGBA(got, tc.want, 0) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
 	}
 }
 
 func TestAdjustGammaGolden(t *testing.T) {
-	src, err := Open("testdata/lena_128.png")
-	if err != nil {
-		t.Errorf("Open: %v", err)
-	}
 	for name, g := range map[string]float64{
 		"out_gamma_0.75.png": 0.75,
 		"out_gamma_1.25.png": 1.25,
 	} {
-		got := AdjustGamma(src, g)
+		got := AdjustGamma(testdataFlowersSmallPNG, g)
 		want, err := Open("testdata/" + name)
 		if err != nil {
-			t.Errorf("Open: %v", err)
+			t.Fatalf("failed to open image: %v", err)
 		}
 		if !compareNRGBA(got, toNRGBA(want), 0) {
-			t.Errorf("resulting image differs from golden: %s", name)
+			t.Fatalf("resulting image differs from golden: %s", name)
 		}
 	}
 }
 
+func BenchmarkAdjustGamma(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		AdjustGamma(testdataBranchesJPG, 1.5)
+	}
+}
+
 func TestAdjustSigmoid(t *testing.T) {
-	td := []struct {
-		desc string
+	testCases := []struct {
+		name string
 		src  image.Image
 		m    float64
 		p    float64
@@ -554,11 +734,98 @@ func TestAdjustSigmoid(t *testing.T) {
 			},
 		},
 	}
-	for _, d := range td {
-		got := AdjustSigmoid(d.src, d.m, d.p)
-		want := d.want
-		if !compareNRGBA(got, want, 0) {
-			t.Errorf("test [%s] failed: %#v", d.desc, got)
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := AdjustSigmoid(tc.src, tc.m, tc.p)
+			if !compareNRGBA(got, tc.want, 0) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
+	}
+}
+
+func BenchmarkAdjustSigmoid(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		AdjustSigmoid(testdataBranchesJPG, 0.5, 3.0)
+	}
+}
+
+func TestAdjustFunc(t *testing.T) {
+	testCases := []struct {
+		name string
+		src  image.Image
+		fn   func(c color.NRGBA) color.NRGBA
+		want *image.NRGBA
+	}{
+		{
+			"invert",
+			&image.NRGBA{
+				Rect:   image.Rect(-1, -1, 2, 2),
+				Stride: 3 * 4,
+				Pix: []uint8{
+					0xcc, 0x00, 0x00, 0x01, 0x00, 0xcc, 0x00, 0x02, 0x00, 0x00, 0xcc, 0x03,
+					0x11, 0x22, 0x33, 0xff, 0x33, 0x22, 0x11, 0xff, 0xaa, 0x33, 0xbb, 0xff,
+					0x00, 0x00, 0x00, 0xff, 0x33, 0x33, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff,
+				},
+			},
+			func(c color.NRGBA) color.NRGBA {
+				return color.NRGBA{255 - c.R, 255 - c.G, 255 - c.B, c.A}
+			},
+			&image.NRGBA{
+				Rect:   image.Rect(0, 0, 3, 3),
+				Stride: 3 * 4,
+				Pix: []uint8{
+					0x33, 0xff, 0xff, 0x01, 0xff, 0x33, 0xff, 0x02, 0xff, 0xff, 0x33, 0x03,
+					0xee, 0xdd, 0xcc, 0xff, 0xcc, 0xdd, 0xee, 0xff, 0x55, 0xcc, 0x44, 0xff,
+					0xff, 0xff, 0xff, 0xff, 0xcc, 0xcc, 0xcc, 0xff, 0x00, 0x00, 0x00, 0xff,
+				},
+			},
+		},
+		{
+			"threshold",
+			&image.NRGBA{
+				Rect:   image.Rect(-1, -1, 2, 2),
+				Stride: 3 * 4,
+				Pix: []uint8{
+					0xcc, 0x00, 0x00, 0x01, 0x00, 0xcc, 0x00, 0x02, 0x00, 0x00, 0xcc, 0x03,
+					0x11, 0x22, 0x33, 0xff, 0x33, 0x22, 0x11, 0xff, 0xaa, 0x33, 0xbb, 0xff,
+					0x00, 0x00, 0x00, 0xff, 0x33, 0x33, 0x33, 0xff, 0xff, 0xff, 0xff, 0xff,
+				},
+			},
+			func(c color.NRGBA) color.NRGBA {
+				y := 0.299*float64(c.R) + 0.587*float64(c.G) + 0.114*float64(c.B)
+				if y > 0x55 {
+					return color.NRGBA{0xff, 0xff, 0xff, c.A}
+				}
+				return color.NRGBA{0x00, 0x00, 0x00, c.A}
+			},
+			&image.NRGBA{
+				Rect:   image.Rect(0, 0, 3, 3),
+				Stride: 3 * 4,
+				Pix: []uint8{
+					0x00, 0x00, 0x00, 0x01, 0xff, 0xff, 0xff, 0x02, 0x00, 0x00, 0x00, 0x03,
+					0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff,
+					0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff,
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := AdjustFunc(tc.src, tc.fn)
+			if !compareNRGBA(got, tc.want, 0) {
+				t.Fatalf("got result %#v want %#v", got, tc.want)
+			}
+		})
+	}
+}
+
+func BenchmarkAdjustFunc(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		AdjustFunc(testdataBranchesJPG, func(c color.NRGBA) color.NRGBA {
+			return color.NRGBA{c.B, c.G, c.R, c.A}
+		})
 	}
 }
