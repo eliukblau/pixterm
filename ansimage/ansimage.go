@@ -342,6 +342,13 @@ func New(h, w int, bg color.Color, dm DitheringMode) (*ANSImage, error) {
 	return ansimage, nil
 }
 
+// NewFromImage creates a new ANSImage from an image.Image.
+// Background color is used to fill when image has transparency or dithering mode is enabled.
+// Dithering mode is used to specify the way that ANSImage render ANSI-pixels (char/block elements).
+func NewFromImage(img image.Image, bg color.Color, dm DitheringMode) (*ANSImage, error) {
+	return createANSImage(img, bg, dm)
+}
+
 // NewFromReader creates a new ANSImage from an io.Reader.
 // Background color is used to fill when image has transparency or dithering mode is enabled.
 // Dithering mode is used to specify the way that ANSImage render ANSI-pixels (char/block elements).
