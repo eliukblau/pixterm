@@ -53,8 +53,6 @@ Your terminal emulator must be support *true color* feature in order to display 
 
 #### Dependencies
 
-All dependencies are directly included in the project via [Go's Vendor Directories](http://golang.org/cmd/go/#hdr-Vendor_Directories). You should not do anything else. Anyway, if you want to get the dependencies manually, project uses the [Glide Vendor Package Management](http://glide.sh). Follow its instructions.
-
 ###### Dependencies for `PIXterm` CLI tool
 
 - Package [colorful](github.com/lucasb-eyer/go-colorful): `github.com/lucasb-eyer/go-colorful`
