@@ -117,19 +117,41 @@ type ANSImage struct {
 
 // Render returns the ANSI-compatible string form of ANSI-pixel.
 func (ap *ANSIpixel) Render() string {
+	return ap.RenderExt(false, false)
+}
+
+// RenderExt returns the ANSI-compatible string form of ANSI-pixel.
+// Can specify if it renders in form of Go code 'fmt.Printf()'.
+// Can specify if background color will be disabled in dithering mode.
+func (ap *ANSIpixel) RenderExt(renderGoCode, disableBgColor bool) string {
 	// WITHOUT DITHERING
 	if ap.source.dithering == NoDithering {
 		if ap.upper {
+			if renderGoCode {
+				return fmt.Sprintf(
+					"\\033[48;2;%d;%d;%dm",
+					ap.R, ap.G, ap.B,
+				)
+			} else {
+				return fmt.Sprintf(
+					"\033[48;2;%d;%d;%dm",
+					ap.R, ap.G, ap.B,
+				)
+			}
+		}
+		if renderGoCode {
 			return fmt.Sprintf(
-				"\033[48;2;%d;%d;%dm",
+				"\\033[38;2;%d;%d;%dm%s",
 				ap.R, ap.G, ap.B,
+				lowerHalfBlock,
+			)
+		} else {
+			return fmt.Sprintf(
+				"\033[38;2;%d;%d;%dm%s",
+				ap.R, ap.G, ap.B,
+				lowerHalfBlock,
 			)
 		}
-		return fmt.Sprintf(
-			"\033[38;2;%d;%d;%dm%s",
-			ap.R, ap.G, ap.B,
-			lowerHalfBlock,
-		)
 	}
 
 	// WITH DITHERING
@@ -172,12 +194,35 @@ func (ap *ANSIpixel) Render() string {
 		panic(errUnknownDitheringMode)
 	}
 
-	return fmt.Sprintf(
-		"\033[48;2;%d;%d;%dm\033[38;2;%d;%d;%dm%s",
-		ap.source.bgR, ap.source.bgG, ap.source.bgB,
-		ap.R, ap.G, ap.B,
-		block,
-	)
+	if renderGoCode {
+		bgStr := fmt.Sprintf(
+			"\\033[48;2;%d;%d;%dm",
+			ap.source.bgR, ap.source.bgG, ap.source.bgB,
+		)
+		if disableBgColor {
+			bgStr = ""
+		}
+		return fmt.Sprintf(
+			"%s\\033[38;2;%d;%d;%dm%s",
+			bgStr,
+			ap.R, ap.G, ap.B,
+			block,
+		)
+	} else {
+		bgStr := fmt.Sprintf(
+			"\033[48;2;%d;%d;%dm",
+			ap.source.bgR, ap.source.bgG, ap.source.bgB,
+		)
+		if disableBgColor {
+			bgStr = ""
+		}
+		return fmt.Sprintf(
+			"%s\033[38;2;%d;%d;%dm%s",
+			bgStr,
+			ap.R, ap.G, ap.B,
+			block,
+		)
+	}
 }
 
 // Height gets total rows of ANSImage.
@@ -236,8 +281,15 @@ func (ai *ANSImage) GetAt(y, x int) (*ANSIpixel, error) {
 }
 
 // Render returns the ANSI-compatible string form of ANSImage.
-// (Nice info for ANSI True Colour - https://gist.github.com/XVilka/8346728)
 func (ai *ANSImage) Render() string {
+	return ai.RenderExt(false, false)
+}
+
+// RenderExt returns the ANSI-compatible string form of ANSImage.
+// Can specify if it renders in form of Go code 'fmt.Printf()'.
+// Can specify if background color will be disabled in dithering mode.
+// (Nice info for ANSI True Colour - https://gist.github.com/XVilka/8346728)
+func (ai *ANSImage) RenderExt(renderGoCode, disableBgColor bool) string {
 	type renderData struct {
 		row    int
 		render string
@@ -252,10 +304,14 @@ func (ai *ANSImage) Render() string {
 				go func(r, y int) {
 					var str string
 					for x := 0; x < ai.w; x++ {
-						str += ai.pixmap[y][x].Render()   // upper pixel
-						str += ai.pixmap[y+1][x].Render() // lower pixel
+						str += ai.pixmap[y][x].RenderExt(renderGoCode, disableBgColor)   // upper pixel
+						str += ai.pixmap[y+1][x].RenderExt(renderGoCode, disableBgColor) // lower pixel
 					}
-					str += "\033[0m\n" // reset ansi style
+					if renderGoCode {
+						str += "\\033[0m\\n" // reset ansi style
+					} else {
+						str += "\033[0m\n" // reset ansi style
+					}
 					ch <- renderData{row: r, render: str}
 				}(r, 2*r)
 				// DEBUG:
@@ -281,9 +337,13 @@ func (ai *ANSImage) Render() string {
 			go func(y int) {
 				var str string
 				for x := 0; x < ai.w; x++ {
-					str += ai.pixmap[y][x].Render()
+					str += ai.pixmap[y][x].RenderExt(renderGoCode, disableBgColor)
 				}
-				str += "\033[0m\n" // reset ansi style
+				if renderGoCode {
+					str += "\\033[0m\\n" // reset ansi style
+				} else {
+					str += "\033[0m\n" // reset ansi style
+				}
 				ch <- renderData{row: y, render: str}
 			}(r)
 		}
@@ -297,7 +357,14 @@ func (ai *ANSImage) Render() string {
 
 // Draw writes the ANSImage to standard output (terminal).
 func (ai *ANSImage) Draw() {
-	fmt.Print(ai.Render())
+	ai.DrawExt(false, false)
+}
+
+// DrawExt writes the ANSImage to standard output (terminal).
+// Can specify if it prints in form of Go code 'fmt.Printf()'.
+// Can specify if background color will be disabled in dithering mode.
+func (ai *ANSImage) DrawExt(renderGoCode, disableBgColor bool) {
+	fmt.Print(ai.RenderExt(renderGoCode, disableBgColor))
 }
 
 // New creates a new empty ANSImage ready to draw on it.

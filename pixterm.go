@@ -228,7 +228,7 @@ func runPixterm() {
 		ansimage.ClearTerminal()
 	}
 	pix.SetMaxProcs(runtime.NumCPU()) // maximum number of parallel goroutines!
-	pix.Draw()
+	pix.DrawExt(flagGo, flagNoBg)
 	if isTerminal() {
 		fmt.Println()
 	}
