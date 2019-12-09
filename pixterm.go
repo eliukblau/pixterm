@@ -42,7 +42,9 @@ const (
 var (
 	flagCredits bool
 	flagDither  uint
+	flagGo      bool
 	flagMatte   string
+	flagNoBg    bool
 	flagScale   uint
 	flagRows    uint
 	flagCols    uint
@@ -62,24 +64,30 @@ func printCredits() {
 	fmt.Print("CONTRIBUTORS:\n\n")
 
 	fmt.Print("  > @disq - http://github.com/disq\n")
-	fmt.Print("      Original code for image transparency support.\n")
+	fmt.Print("      + Original code for image transparency support.\n")
 	fmt.Println()
 
 	fmt.Print("  > @timob - http://github.com/timob\n")
-	fmt.Print("      Fix for ANSIpixel type: use 8bit color component for output.\n")
+	fmt.Print("      + Fix for ANSIpixel type: use 8bit color component for output.\n")
 	fmt.Println()
 
 	fmt.Print("  > @HongjiangHuang - http://github.com/HongjiangHuang\n")
-	fmt.Print("      Original code for image download support.\n")
+	fmt.Print("      + Original code for image download support.\n")
+	fmt.Println()
+
+	fmt.Print("  > @brutestack - http://github.com/brutestack\n")
+	fmt.Print("      + Color support for Windows (Command Prompt & PowerShell).\n")
+	fmt.Print("      + Option to disable background color in dithering mode.\n")
+	fmt.Print("      + Option to output Go code to 'fmt.Printf()' the image.\n")
 	fmt.Println()
 
 	fmt.Print("  > @diamondburned - http://github.com/diamondburned\n")
-	fmt.Print("      NewFromImage()/NewScaledFromImage() functions for ANSImage API.\n")
+	fmt.Print("      + NewFromImage()/NewScaledFromImage() functions for ANSImage API.\n")
 	fmt.Println()
 
 	fmt.Print("  > @danirod - http://github.com/danirod\n")
 	fmt.Print("  > @Xpktro - http://github.com/Xpktro\n")
-	fmt.Print("      Moral support.\n")
+	fmt.Print("      + Moral support.\n")
 	fmt.Println()
 }
 
@@ -113,7 +121,9 @@ func configureFlags() {
 
 	flag.CommandLine.BoolVar(&flagCredits, "credits", false, "shows some love to contributors <3")
 	flag.CommandLine.UintVar(&flagDither, "d", 0, "dithering `mode`:\n   0 - no dithering (default)\n   1 - with blocks\n   2 - with chars")
+	flag.CommandLine.BoolVar(&flagGo, "go", false, "output Go code to 'fmt.Printf()' the image")
 	flag.CommandLine.StringVar(&flagMatte, "m", "", "matte `color` for transparency or background\n(optional, hex format, default: 000000)")
+	flag.CommandLine.BoolVar(&flagNoBg, "nobg", false, "disable background color\n(optional, only using dithering, ignores matte color)")
 	flag.CommandLine.UintVar(&flagScale, "s", 0, "scale `method`:\n   0 - resize (default)\n   1 - fill\n   2 - fit")
 	flag.CommandLine.UintVar(&flagRows, "tr", 0, "terminal `rows` (optional, >=2; when piping, default: 24)")
 	flag.CommandLine.UintVar(&flagCols, "tc", 0, "terminal `columns` (optional, >=2; when piping, default: 80)")
