@@ -73,6 +73,10 @@ func printCredits() {
 	fmt.Print("      Original code for image download support.\n")
 	fmt.Println()
 
+	fmt.Print("  > @diamondburned - http://github.com/diamondburned\n")
+	fmt.Print("      NewFromImage()/NewScaledFromImage() functions for ANSImage API.\n")
+	fmt.Println()
+
 	fmt.Print("  > @danirod - http://github.com/danirod\n")
 	fmt.Print("  > @Xpktro - http://github.com/Xpktro\n")
 	fmt.Print("      Moral support.\n")

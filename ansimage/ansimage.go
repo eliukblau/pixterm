@@ -345,8 +345,26 @@ func New(h, w int, bg color.Color, dm DitheringMode) (*ANSImage, error) {
 // NewFromImage creates a new ANSImage from an image.Image.
 // Background color is used to fill when image has transparency or dithering mode is enabled.
 // Dithering mode is used to specify the way that ANSImage render ANSI-pixels (char/block elements).
-func NewFromImage(img image.Image, bg color.Color, dm DitheringMode) (*ANSImage, error) {
-	return createANSImage(img, bg, dm)
+func NewFromImage(image image.Image, bg color.Color, dm DitheringMode) (*ANSImage, error) {
+	return createANSImage(image, bg, dm)
+}
+
+// NewScaledFromImage creates a new scaled ANSImage from an image.Image.
+// Background color is used to fill when image has transparency or dithering mode is enabled.
+// Dithering mode is used to specify the way that ANSImage render ANSI-pixels (char/block elements).
+func NewScaledFromImage(image image.Image, y, x int, bg color.Color, sm ScaleMode, dm DitheringMode) (*ANSImage, error) {
+	switch sm {
+	case ScaleModeResize:
+		image = imaging.Resize(image, x, y, imaging.Lanczos)
+	case ScaleModeFill:
+		image = imaging.Fill(image, x, y, imaging.Center, imaging.Lanczos)
+	case ScaleModeFit:
+		image = imaging.Fit(image, x, y, imaging.Lanczos)
+	default:
+		panic(errUnknownScaleMode)
+	}
+
+	return createANSImage(image, bg, dm)
 }
 
 // NewFromReader creates a new ANSImage from an io.Reader.
