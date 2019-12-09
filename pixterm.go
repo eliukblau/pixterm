@@ -78,7 +78,7 @@ func printCredits() {
 	fmt.Print("  > @brutestack - http://github.com/brutestack\n")
 	fmt.Print("      + Color support for Windows (Command Prompt & PowerShell).\n")
 	fmt.Print("      + Option to disable background color in dithering mode.\n")
-	fmt.Print("      + Option to output Go code to 'fmt.Printf()' the image.\n")
+	fmt.Print("      + Option to output Go code to 'fmt.Print()' the image.\n")
 	fmt.Println()
 
 	fmt.Print("  > @diamondburned - http://github.com/diamondburned\n")
@@ -121,7 +121,7 @@ func configureFlags() {
 
 	flag.CommandLine.BoolVar(&flagCredits, "credits", false, "shows some love to contributors <3")
 	flag.CommandLine.UintVar(&flagDither, "d", 0, "dithering `mode`:\n   0 - no dithering (default)\n   1 - with blocks\n   2 - with chars")
-	flag.CommandLine.BoolVar(&flagGo, "go", false, "output Go code to 'fmt.Printf()' the image")
+	flag.CommandLine.BoolVar(&flagGo, "go", false, "output Go code to 'fmt.Print()' the image")
 	flag.CommandLine.StringVar(&flagMatte, "m", "", "matte `color` for transparency or background\n(optional, hex format, default: 000000)")
 	flag.CommandLine.BoolVar(&flagNoBg, "nobg", false, "disable background color\n(optional, only using dithering, ignores matte color)")
 	flag.CommandLine.UintVar(&flagScale, "s", 0, "scale `method`:\n   0 - resize (default)\n   1 - fill\n   2 - fit")

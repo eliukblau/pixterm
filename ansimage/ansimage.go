@@ -131,7 +131,7 @@ func (ap *ANSIpixel) RenderExt(renderGoCode, disableBgColor bool) string {
 
 	// WITHOUT DITHERING
 	if ap.source.dithering == NoDithering {
-		renderStr := ""
+		var renderStr string
 		if ap.upper {
 			renderStr = fmt.Sprintf(
 				"%s[48;2;%d;%d;%dm",
@@ -276,6 +276,13 @@ func (ai *ANSImage) RenderExt(renderGoCode, disableBgColor bool) string {
 		render string
 	}
 
+	backslashN := "\n"
+	backslash033 := "\033"
+	if renderGoCode {
+		backslashN = "\\n"
+		backslash033 = "\\033"
+	}
+
 	// WITHOUT DITHERING
 	if ai.dithering == NoDithering {
 		rows := make([]string, ai.h/2)
@@ -288,11 +295,7 @@ func (ai *ANSImage) RenderExt(renderGoCode, disableBgColor bool) string {
 						str += ai.pixmap[y][x].RenderExt(renderGoCode, disableBgColor)   // upper pixel
 						str += ai.pixmap[y+1][x].RenderExt(renderGoCode, disableBgColor) // lower pixel
 					}
-					if renderGoCode {
-						str += "\\033[0m\\n" // reset ansi style
-					} else {
-						str += "\033[0m\n" // reset ansi style
-					}
+					str += fmt.Sprintf("%s[0m%s", backslash033, backslashN) // reset ansi style
 					ch <- renderData{row: r, render: str}
 				}(r, 2*r)
 				// DEBUG:
@@ -301,6 +304,9 @@ func (ai *ANSImage) RenderExt(renderGoCode, disableBgColor bool) string {
 			}
 			for n, r := 0, y+1; (n <= ai.maxprocs) && (2*r+1 < ai.h); n, r = n+1, y+n+1 {
 				data := <-ch
+				if renderGoCode {
+					data.render = fmt.Sprintf(`fmt.Print("%s")%s`, data.render, "\n")
+				}
 				rows[data.row] = data.render
 				// DEBUG:
 				// fmt.Printf("data.row:%d\n", data.row)
@@ -320,16 +326,15 @@ func (ai *ANSImage) RenderExt(renderGoCode, disableBgColor bool) string {
 				for x := 0; x < ai.w; x++ {
 					str += ai.pixmap[y][x].RenderExt(renderGoCode, disableBgColor)
 				}
-				if renderGoCode {
-					str += "\\033[0m\\n" // reset ansi style
-				} else {
-					str += "\033[0m\n" // reset ansi style
-				}
+				str += fmt.Sprintf("%s[0m%s", backslash033, backslashN) // reset ansi style
 				ch <- renderData{row: y, render: str}
 			}(r)
 		}
 		for n, r := 0, y; (n <= ai.maxprocs) && (r+1 < ai.h); n, r = n+1, y+n+1 {
 			data := <-ch
+			if renderGoCode {
+				data.render = fmt.Sprintf(`fmt.Print("%s")%s`, data.render, "\n")
+			}
 			rows[data.row] = data.render
 		}
 	}
