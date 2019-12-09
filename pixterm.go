@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	pxtVersion = "1.2.4"
+	pxtVersion = "1.3.0"
 	pxtLogo    = `
 
    ___  _____  ____
