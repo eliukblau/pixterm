@@ -414,6 +414,18 @@ func NewFromFile(name string, bg color.Color, dm DitheringMode) (*ANSImage, erro
 	return NewFromReader(reader, bg, dm)
 }
 
+// NewScaledFromFile creates a new scaled ANSImage from a file.
+// Background color is used to fill when image has transparency or dithering mode is enabled.
+// Dithering mode is used to specify the way that ANSImage render ANSI-pixels (char/block elements).
+func NewScaledFromFile(name string, y, x int, bg color.Color, sm ScaleMode, dm DitheringMode) (*ANSImage, error) {
+	reader, err := os.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+	return NewScaledFromReader(reader, y, x, bg, sm, dm)
+}
+
 // NewFromURL creates a new ANSImage from an image URL.
 // Background color is used to fill when image has transparency or dithering mode is enabled.
 // Dithering mode is used to specify the way that ANSImage render ANSI-pixels (char/block elements).
@@ -427,18 +439,6 @@ func NewFromURL(url string, bg color.Color, dm DitheringMode) (*ANSImage, error)
 	}
 	defer res.Body.Close()
 	return NewFromReader(res.Body, bg, dm)
-}
-
-// NewScaledFromFile creates a new scaled ANSImage from a file.
-// Background color is used to fill when image has transparency or dithering mode is enabled.
-// Dithering mode is used to specify the way that ANSImage render ANSI-pixels (char/block elements).
-func NewScaledFromFile(name string, y, x int, bg color.Color, sm ScaleMode, dm DitheringMode) (*ANSImage, error) {
-	reader, err := os.Open(name)
-	if err != nil {
-		return nil, err
-	}
-	defer reader.Close()
-	return NewScaledFromReader(reader, y, x, bg, sm, dm)
 }
 
 // NewScaledFromURL creates a new scaled ANSImage from an image URL.
