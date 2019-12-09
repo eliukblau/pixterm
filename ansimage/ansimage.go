@@ -124,34 +124,29 @@ func (ap *ANSIpixel) Render() string {
 // Can specify if it renders in form of Go code 'fmt.Printf()'.
 // Can specify if background color will be disabled in dithering mode.
 func (ap *ANSIpixel) RenderExt(renderGoCode, disableBgColor bool) string {
+	backslash033 := "\033"
+	if renderGoCode {
+		backslash033 = "\\033"
+	}
+
 	// WITHOUT DITHERING
 	if ap.source.dithering == NoDithering {
+		renderStr := ""
 		if ap.upper {
-			if renderGoCode {
-				return fmt.Sprintf(
-					"\\033[48;2;%d;%d;%dm",
-					ap.R, ap.G, ap.B,
-				)
-			} else {
-				return fmt.Sprintf(
-					"\033[48;2;%d;%d;%dm",
-					ap.R, ap.G, ap.B,
-				)
-			}
-		}
-		if renderGoCode {
-			return fmt.Sprintf(
-				"\\033[38;2;%d;%d;%dm%s",
+			renderStr = fmt.Sprintf(
+				"%s[48;2;%d;%d;%dm",
+				backslash033,
 				ap.R, ap.G, ap.B,
-				lowerHalfBlock,
 			)
 		} else {
-			return fmt.Sprintf(
-				"\033[38;2;%d;%d;%dm%s",
+			renderStr = fmt.Sprintf(
+				"%s[38;2;%d;%d;%dm%s",
+				backslash033,
 				ap.R, ap.G, ap.B,
 				lowerHalfBlock,
 			)
 		}
+		return renderStr
 	}
 
 	// WITH DITHERING
@@ -194,35 +189,21 @@ func (ap *ANSIpixel) RenderExt(renderGoCode, disableBgColor bool) string {
 		panic(errUnknownDitheringMode)
 	}
 
-	if renderGoCode {
-		bgStr := fmt.Sprintf(
-			"\\033[48;2;%d;%d;%dm",
-			ap.source.bgR, ap.source.bgG, ap.source.bgB,
-		)
-		if disableBgColor {
-			bgStr = ""
-		}
-		return fmt.Sprintf(
-			"%s\\033[38;2;%d;%d;%dm%s",
-			bgStr,
-			ap.R, ap.G, ap.B,
-			block,
-		)
-	} else {
-		bgStr := fmt.Sprintf(
-			"\033[48;2;%d;%d;%dm",
-			ap.source.bgR, ap.source.bgG, ap.source.bgB,
-		)
-		if disableBgColor {
-			bgStr = ""
-		}
-		return fmt.Sprintf(
-			"%s\033[38;2;%d;%d;%dm%s",
-			bgStr,
-			ap.R, ap.G, ap.B,
-			block,
-		)
+	bgColorStr := fmt.Sprintf(
+		"%s[48;2;%d;%d;%dm",
+		backslash033,
+		ap.source.bgR, ap.source.bgG, ap.source.bgB,
+	)
+	if disableBgColor {
+		bgColorStr = ""
 	}
+	return fmt.Sprintf(
+		"%s%s[38;2;%d;%d;%dm%s",
+		bgColorStr,
+		backslash033,
+		ap.R, ap.G, ap.B,
+		block,
+	)
 }
 
 // Height gets total rows of ANSImage.
