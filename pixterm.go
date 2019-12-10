@@ -100,8 +100,8 @@ func printCredits() {
 
 	fmt.Print("  > @brutestack - http://github.com/brutestack\n")
 	fmt.Print("      + Color support for Windows (Command Prompt & PowerShell).\n")
-	fmt.Print("      + Option to disable background color in dithering mode.\n")
-	fmt.Print("      + Option to output Go code to 'fmt.Print()' the image.\n")
+	fmt.Print("      + Original code for disable background color in dithering mode.\n")
+	fmt.Print("      + Original code for output Go code to 'fmt.Print()' the image.\n")
 	fmt.Println()
 
 	fmt.Print("  > @diamondburned - http://github.com/diamondburned\n")
