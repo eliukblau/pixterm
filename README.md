@@ -2,7 +2,7 @@
    ___  _____  ____
   / _ \/  _/ |/_/ /____ ______ _    Made with love by Eliuk Blau
  / ___// /_>  </ __/ -_) __/  ' \   github.com/eliukblau/pixterm
-/_/  /___/_/|_|\__/\__/_/ /_/_/_/   v1.3.0
+/_/  /___/_/|_|\__/\__/_/ /_/_/_/              1.3.0
 
 ```
 
@@ -18,42 +18,48 @@ Fetching images from HTTP/HTTPS is supported too.
 
 #### Cool Screenshots
 
+![Screenshot 1](docs/images/screenshot01.png)
+
 ##### No Dithering (Classic Mode)
 
-![Screenshot 1](screenshot01.png)
+![Screenshot 2](docs/images/screenshot02.png)
 
-![Screenshot 2](screenshot02.png)
+![Screenshot 3](docs/images/screenshot03.png)
 
-![Screenshot 3](screenshot03.png)
+![Screenshot 4](docs/images/screenshot04.png)
 
-![Screenshot 4](screenshot04.png)
+![Screenshot 5](docs/images/screenshot05.png)
 
-![Screenshot 5](screenshot05.png)
-
-![Screenshot 6](screenshot06.png)
+![Screenshot 6](docs/images/screenshot06.png)
 
 ##### Dithering with Blocks
 
-![Screenshot 7](screenshot07.png)
+![Screenshot 7](docs/images/screenshot07.png)
 
-![Screenshot 8](screenshot08.png)
+![Screenshot 8](docs/images/screenshot08.png)
 
-![Screenshot 9](screenshot09.png)
+![Screenshot 9](docs/images/screenshot09.png)
 
 ##### Dithering with Characters
 
-![Screenshot 10](screenshot10.png)
+![Screenshot 10](docs/images/screenshot10.png)
 
-![Screenshot 10](screenshot11.png)
+![Screenshot 11](docs/images/screenshot11.png)
 
-![Screenshot 10](screenshot12.png)
+![Screenshot 12](docs/images/screenshot12.png)
+
+##### Dithering with Background Color Disabled (`-nobg`)
+
+![Screenshot 13](docs/images/screenshot13.png)
+
+![Screenshot 14](docs/images/screenshot14.png)
 
 #### Requirements
 Your terminal emulator must be support *true color* feature in order to display image colors in a right way. In addition, you must use a monospaced font that includes the lower half block unicode character: `▄ (U+2584)`. I personally recommend [Envy Code R](http://damieng.com/blog/2008/05/26/envy-code-r-preview-7-coding-font-released). It's the nice font that shows in the screenshots. If you want to use the dithering mode with blocks, the font must also includes the following unicode characters: `█ (U+2588)`, `▓ (U+2593)`, `▒ (U+2592)`, `░ (U+2591)`. The dithering mode with characters works with standard ASCII chars.
 
 #### Dependencies
 
-All dependencies are directly included in the project via [Go's Vendor Directories](http://golang.org/cmd/go/#hdr-Vendor_Directories). You should not do anything else. Anyway, if you want to get the dependencies manually, project uses the [Glide Vendor Package Management](http://glide.sh). Follow its instructions.
+All dependencies are included via standard [Go module system](https://blog.golang.org/using-go-modules). You should not do anything else.
 
 ###### Dependencies for `PIXterm` CLI tool
 
@@ -70,11 +76,11 @@ All dependencies are directly included in the project via [Go's Vendor Directori
 
 #### Installation
 
-*You need the [Go compiler](http://golang.org) version 1.7 or superior installed in your system.*
+*You need the [Go compiler](http://golang.org) version 1.13 or superior installed in your system.*
 
 Run this command to automatically download sources and install **`PIXterm`** binary in your `$GOPATH/bin` directory:
 
-`go get -u github.com/eliukblau/pixterm`
+`go get -u github.com/eliukblau/pixterm/cmd/pixterm`
 
 If you use Arch Linux, `eigengrau` has kindly created an AUR package for **`PIXterm`** (thanks man!). Run this command to install it:
 
@@ -82,7 +88,7 @@ If you use Arch Linux, `eigengrau` has kindly created an AUR package for **`PIXt
 
 #### About
 
-**`PIXterm`** is a terminal toy application that I made to exercise my skills on Go programming language. If you have not tried this language yet, please give it a try! It's easy, fast and very well organized. You'll not regret :D
+**`PIXterm`** is a terminal toy application that I made to exercise my skills on Go programming language. If you have not tried this language yet, please give it a try! It's easy, fast and very well organized. You'll not regret 😜
 
 *This application is originaly inspired by the clever [termpix](http://github.com/hopey-dishwasher/termpix), implemented in [Rust](http://www.rust-lang.org).*
 
@@ -94,6 +100,19 @@ If you use Arch Linux, `eigengrau` has kindly created an AUR package for **`PIXt
 
 #### Contributors
 
-- [@disq](http://github.com/disq) - Original code for image transparency support.
-- [@timob](http://github.com/timob) - Fix for `ANSIpixel` type: use 8bit color component for output.
-- [@HongjiangHuang](http://github.com/HongjiangHuang) - Original code for image download support.
+* [@disq](http://github.com/disq)
+   * Original code for image transparency support.
+
+* [@timob](http://github.com/timob)
+   * Fix for `ANSIpixel` type: use 8bit color component for output.
+
+* [@HongjiangHuang](http://github.com/HongjiangHuang)
+   * Original code for image download support.
+
+* [@brutestack](http://github.com/brutestack)
+   * Color support for Windows (Command Prompt & PowerShell).
+   * Original code for disable background color in dithering mode.
+   * Original code for output Go code to `fmt.Print()` the image.
+
+* [@diamondburned](http://github.com/diamondburned)
+   * `NewFromImage()` & `NewScaledFromImage()` for `ANSImage` API.
