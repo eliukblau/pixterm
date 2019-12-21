@@ -1,3 +1,7 @@
 .DS_Store
 Thumbs.db
 vendor/
+
+# compiled binaries
+/cmd/pixterm/pixterm
+/cmd/pixterm/pixterm.exe
