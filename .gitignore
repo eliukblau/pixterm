@@ -2,6 +2,6 @@
 Thumbs.db
 vendor/
 
-# Compiled binaries
-pixterm
-pixterm.exe
+# compiled binaries
+/cmd/pixterm/pixterm
+/cmd/pixterm/pixterm.exe
