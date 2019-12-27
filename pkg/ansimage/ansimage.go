@@ -7,7 +7,7 @@
 //
 //    This Source Code Form is subject to the terms of the Mozilla Public
 //    License, v. 2.0. If a copy of the MPL was not distributed with this
-//    file, You can obtain one at http://mozilla.org/MPL/2.0/.
+//    file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 package ansimage
 
@@ -34,11 +34,11 @@ import (
 )
 
 // Unicode Block Element character used to represent lower pixel in terminal row.
-// INFO: http://en.wikipedia.org/wiki/Block_Elements
+// INFO: https://en.wikipedia.org/wiki/Block_Elements
 const lowerHalfBlock = "\u2584"
 
 // Unicode Block Element characters used to represent dithering in terminal row.
-// INFO: http://en.wikipedia.org/wiki/Block_Elements
+// INFO: https://en.wikipedia.org/wiki/Block_Elements
 const fullBlock = "\u2588"
 const darkShadeBlock = "\u2593"
 const mediumShadeBlock = "\u2592"
@@ -510,7 +510,7 @@ func NewScaledFromURL(url string, y, x int, bg color.Color, sm ScaleMode, dm Dit
 }
 
 // ClearTerminal clears current terminal buffer using ANSI escape code.
-// (Nice info for ANSI escape codes - http://unix.stackexchange.com/questions/124762/how-does-clear-command-work)
+// (Nice info for ANSI escape codes - https://unix.stackexchange.com/questions/124762/how-does-clear-command-work)
 func ClearTerminal() {
 	fmt.Print("\033[H\033[2J")
 }
@@ -523,7 +523,7 @@ func createANSImage(img image.Image, bg color.Color, dm DitheringMode) (*ANSImag
 	bounds := img.Bounds()
 
 	// do compositing only if background color has no transparency (thank you @disq for the idea!)
-	// (info - http://stackoverflow.com/questions/36595687/transparent-pixel-color-go-lang-image)
+	// (info - https://stackoverflow.com/questions/36595687/transparent-pixel-color-go-lang-image)
 	if _, _, _, a := bg.RGBA(); a >= 0xffff {
 		rgbaOut = image.NewRGBA(bounds)
 		draw.Draw(rgbaOut, bounds, image.NewUniform(bg), image.ZP, draw.Src)
