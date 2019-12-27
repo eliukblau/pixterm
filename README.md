@@ -1,8 +1,8 @@
 ```
    ___  _____  ____
-  / _ \/  _/ |/_/ /____ ______ _    Made with love by Eliuk Blau
- / ___// /_>  </ __/ -_) __/  ' \   github.com/eliukblau/pixterm
-/_/  /___/_/|_|\__/\__/_/ /_/_/_/              1.3.0
+  / _ \/  _/ |/_/ /____ ______ _      Made with love by Eliuk Blau
+ / ___// /_>  </ __/ -_) __/  ' \ https://github.com/eliukblau/pixterm
+/_/  /___/_/|_|\__/\__/_/ /_/_/_/                1.3.1
 
 ```
 
@@ -116,3 +116,10 @@ If you use Arch Linux, `eigengrau` has kindly created an AUR package for **`PIXt
 
 * [@diamondburned](https://github.com/diamondburned)
    * `NewFromImage()` & `NewScaledFromImage()` for `ANSImage` API.
+
+* [@MichaelMure](https://github.com/MichaelMure)
+   * More conventional `go.mod` file at repository.
+
+* [@Calinou](https://github.com/Calinou)
+   * Use HTTPS URLs everywhere.
+   * Other awesome contributions.
