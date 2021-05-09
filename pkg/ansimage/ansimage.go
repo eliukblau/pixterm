@@ -14,23 +14,26 @@ package ansimage
 import (
 	"errors"
 	"fmt"
-	"image"
-	"image/color"
-	"image/draw"
-	_ "image/gif" // initialize decoder
 
-	_ "image/jpeg" // initialize decoder
-	_ "image/png"  // initialize decoder
 	"io"
 	"net/http"
 	"os"
 	"strings"
 
-	"github.com/disintegration/imaging"
-	"github.com/lucasb-eyer/go-colorful"
+	"image"
+	"image/color"
+	"image/draw"
+
+	_ "image/gif"  // initialize decoder
+	_ "image/jpeg" // initialize decoder
+	_ "image/png"  // initialize decoder
+
 	_ "golang.org/x/image/bmp"  // initialize decoder
 	_ "golang.org/x/image/tiff" // initialize decoder
 	_ "golang.org/x/image/webp" // initialize decoder
+
+	"github.com/disintegration/imaging"
+	"github.com/lucasb-eyer/go-colorful"
 )
 
 // Unicode Block Element character used to represent lower pixel in terminal row.
@@ -526,14 +529,14 @@ func createANSImage(img image.Image, bg color.Color, dm DitheringMode) (*ANSImag
 	// (info - https://stackoverflow.com/questions/36595687/transparent-pixel-color-go-lang-image)
 	if _, _, _, a := bg.RGBA(); a >= 0xffff {
 		rgbaOut = image.NewRGBA(bounds)
-		draw.Draw(rgbaOut, bounds, image.NewUniform(bg), image.ZP, draw.Src)
-		draw.Draw(rgbaOut, bounds, img, image.ZP, draw.Over)
+		draw.Draw(rgbaOut, bounds, image.NewUniform(bg), image.Point{}, draw.Src)
+		draw.Draw(rgbaOut, bounds, img, image.Point{}, draw.Over)
 	} else {
 		if v, ok := img.(*image.RGBA); ok {
 			rgbaOut = v
 		} else {
 			rgbaOut = image.NewRGBA(bounds)
-			draw.Draw(rgbaOut, bounds, img, image.ZP, draw.Src)
+			draw.Draw(rgbaOut, bounds, img, image.Point{}, draw.Src)
 		}
 	}
 
