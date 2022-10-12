@@ -87,7 +87,7 @@ If you use Arch Linux, `eigengrau` has kindly created an AUR package for **`PIXt
 `yaourt -S pixterm-git`
 
 If you use an Apple device you may need to run this command before building the binary:
-`go get -u golang.org/x/sys`
+`go get -u golang.org/x/sys` or `go get -u all`
 
 #### About
 
