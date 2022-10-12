@@ -86,6 +86,9 @@ If you use Arch Linux, `eigengrau` has kindly created an AUR package for **`PIXt
 
 `yaourt -S pixterm-git`
 
+If you use an Apple device you may need to run this command before building the binary:
+`go get -u golang.org/x/sys`
+
 #### About
 
 **`PIXterm`** is a terminal toy application that I made to exercise my skills on Go programming language. If you have not tried this language yet, please give it a try! It's easy, fast and very well organized. You'll not regret 😜
