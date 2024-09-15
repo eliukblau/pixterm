@@ -24,7 +24,7 @@ import (
 
 	"github.com/eliukblau/pixterm/pkg/ansimage"
 	"github.com/lucasb-eyer/go-colorful"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 const (
@@ -137,12 +137,12 @@ func validateFlags() {
 }
 
 func isTerminal() bool {
-	return terminal.IsTerminal(int(os.Stdout.Fd()))
+	return term.IsTerminal(int(os.Stdout.Fd()))
 }
 
 func getTerminalSize() (width, height int, err error) {
 	if isTerminal() {
-		return terminal.GetSize(int(os.Stdout.Fd()))
+		return term.GetSize(int(os.Stdout.Fd()))
 	}
 	// fallback when piping to a file!
 	return 80, 24, nil // VT100 terminal size
