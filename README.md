@@ -2,7 +2,7 @@
    ___  _____  ____
   / _ \/  _/ |/_/ /____ ______ _      Made with love by Eliuk Blau
  / ___// /_>  </ __/ -_) __/  ' \ https://github.com/eliukblau/pixterm
-/_/  /___/_/|_|\__/\__/_/ /_/_/_/                1.3.1
+/_/  /___/_/|_|\__/\__/_/ /_/_/_/                1.3.2
 
 ```
 
@@ -55,6 +55,7 @@ Fetching images from HTTP/HTTPS is supported too.
 ![Screenshot 14](docs/images/screenshot14.png)
 
 #### Requirements
+
 Your terminal emulator must be support *true color* feature in order to display image colors in a right way. In addition, you must use a monospaced font that includes the lower half block unicode character: `▄ (U+2584)`. I personally recommend [Envy Code R](https://damieng.com/blog/2008/05/26/envy-code-r-preview-7-coding-font-released). It's the nice font that shows in the screenshots. If you want to use the dithering mode with blocks, the font must also includes the following unicode characters: `█ (U+2588)`, `▓ (U+2593)`, `▒ (U+2592)`, `░ (U+2591)`. The dithering mode with characters works with standard ASCII chars.
 
 #### Dependencies
@@ -76,9 +77,9 @@ All dependencies are included via standard [Go module system](https://blog.golan
 
 #### Installation
 
-*You need the [Go compiler](https://golang.org) version 1.13 or superior installed in your system.*
+*You need the [Go compiler](https://golang.org) version 1.20 or superior installed in your system.*
 
-Run this command to automatically download sources and install **`PIXterm`** binary in your `$GOPATH/bin` directory:
+Run this command to automatically download sources and install **`PIXterm`** binary in your `$GOPATH/bin` (or `$GOBIN`) directory:
 
 `go get -u github.com/eliukblau/pixterm/cmd/pixterm`
 
@@ -100,26 +101,26 @@ If you use Arch Linux, `eigengrau` has kindly created an AUR package for **`PIXt
 
 #### Contributors
 
-* [@disq](https://github.com/disq)
-   * Original code for image transparency support.
+- [@disq](https://github.com/disq)
+  - Original code for image transparency support.
 
-* [@timob](https://github.com/timob)
-   * Fix for `ANSIpixel` type: use 8bit color component for output.
+- [@timob](https://github.com/timob)
+  - Fix for `ANSIpixel` type: use 8bit color component for output.
 
-* [@HongjiangHuang](https://github.com/HongjiangHuang)
-   * Original code for image download support.
+- [@HongjiangHuang](https://github.com/HongjiangHuang)
+  - Original code for image download support.
 
-* [@brutestack](https://github.com/brutestack)
-   * Color support for Windows (Command Prompt & PowerShell).
-   * Original code for disable background color in dithering mode.
-   * Original code for output Go code to `fmt.Print()` the image.
+- [@brutestack](https://github.com/brutestack)
+  - Color support for Windows (Command Prompt & PowerShell).
+  - Original code for disable background color in dithering mode.
+  - Original code for output Go code to `fmt.Print()` the image.
 
-* [@diamondburned](https://github.com/diamondburned)
-   * `NewFromImage()` & `NewScaledFromImage()` for `ANSImage` API.
+- [@diamondburned](https://github.com/diamondburned)
+  - `NewFromImage()` & `NewScaledFromImage()` for `ANSImage` API.
 
-* [@MichaelMure](https://github.com/MichaelMure)
-   * More conventional `go.mod` file at repository.
+- [@MichaelMure](https://github.com/MichaelMure)
+  - More conventional `go.mod` file at repository.
 
-* [@Calinou](https://github.com/Calinou)
-   * Use HTTPS URLs everywhere.
-   * Other awesome contributions.
+- [@Calinou](https://github.com/Calinou)
+  - Use HTTPS URLs everywhere.
+  - Other awesome contributions.
