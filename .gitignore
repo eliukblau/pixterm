@@ -1,5 +1,11 @@
+# personal editors & tools configs
+.vscode
+
+# operating system garbage
 .DS_Store
 Thumbs.db
+
+# go vendor directory
 vendor/
 
 # compiled binaries
