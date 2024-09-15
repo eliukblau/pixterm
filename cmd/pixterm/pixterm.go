@@ -14,32 +14,20 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strings"
 
 	"github.com/eliukblau/pixterm/pkg/ansimage"
 	"github.com/lucasb-eyer/go-colorful"
 	"golang.org/x/term"
 )
 
-const (
-	pxtVersion = "1.3.1"
-	pxtLogo    = `
-
-   ___  _____  ____
-  / _ \/  _/ |/_/ /____ ______ _      Made with love by Eliuk Blau
- / ___// /_>  </ __/ -_) __/  ' \ https://github.com/eliukblau/pixterm
-/_/  /___/_/|_|\__/\__/_/ /_/_/_/                {{VERSION}}
-
-`
-)
-
 var (
+	flagVersion bool
 	flagCredits bool
 	flagDither  uint
 	flagGo      bool
@@ -50,13 +38,23 @@ var (
 	flagCols    uint
 )
 
+func init() {
+	runtime.GOMAXPROCS(runtime.NumCPU()) // use paralelism for goroutines!
+	prepareLogoStuff()
+	configureFlags()
+}
+
 func main() {
 	validateFlags()
 	runPixterm()
 }
 
+func printVersion() {
+	fmt.Println(pxtVersion)
+}
+
 func printLogo() {
-	fmt.Print(strings.Trim(strings.Replace(pxtLogo, "{{VERSION}}", pxtVersion, 1), "\n"), "\n\n")
+	fmt.Print(pxtLogo, "\n\n")
 }
 
 func printCredits() {
@@ -88,15 +86,16 @@ func configureFlags() {
 		fmt.Print("OPTIONS:\n\n")
 		flag.CommandLine.SetOutput(os.Stdout)
 		flag.CommandLine.PrintDefaults()
-		flag.CommandLine.SetOutput(ioutil.Discard) // hide flag errors
+		flag.CommandLine.SetOutput(io.Discard) // hide flag errors
 		fmt.Print("  -help\n\tprints this message :D LOL\n")
 		fmt.Println()
 	}
 
-	flag.CommandLine.SetOutput(ioutil.Discard) // hide flag errors
+	flag.CommandLine.SetOutput(io.Discard) // hide flag errors
 	flag.CommandLine.Init(os.Args[0], flag.ExitOnError)
 
-	flag.CommandLine.BoolVar(&flagCredits, "credits", false, "shows some love to contributors <3")
+	flag.CommandLine.BoolVar(&flagVersion, "version", false, "show PIXterm version")
+	flag.CommandLine.BoolVar(&flagCredits, "credits", false, "show some love to contributors <3")
 	flag.CommandLine.UintVar(&flagDither, "d", 0, "dithering `mode`:\n   0 - no dithering (default)\n   1 - with blocks\n   2 - with chars")
 	flag.CommandLine.BoolVar(&flagGo, "go", false, "output Go code to 'fmt.Print()' the image")
 	flag.CommandLine.StringVar(&flagMatte, "m", "", "matte `color` for transparency or background\n(optional, hex format, default: 000000)")
@@ -109,6 +108,11 @@ func configureFlags() {
 }
 
 func validateFlags() {
+	if flagVersion {
+		printVersion()
+		os.Exit(0)
+	}
+
 	if flagCredits {
 		printCredits()
 		os.Exit(0)
@@ -209,9 +213,4 @@ func runPixterm() {
 	if isTerminal() {
 		fmt.Println()
 	}
-}
-
-func init() {
-	runtime.GOMAXPROCS(runtime.NumCPU()) // use paralelism for goroutines!
-	configureFlags()
 }
