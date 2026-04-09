@@ -77,7 +77,7 @@ All dependencies are included via standard [Go module system](https://blog.golan
 
 #### Installation
 
-*You need the [Go compiler](https://golang.org) version 1.20 or superior installed in your system.*
+*You need the [Go compiler](https://golang.org) version 1.25 or higher installed in your system.*
 
 Run this command to automatically download sources and install **`PIXterm`** binary in your `$GOPATH/bin` (or `$GOBIN`) directory:
 
