@@ -47,6 +47,10 @@ func printContributors() {
 	fmt.Print("      + Other awesome contributions.\n")
 	fmt.Println()
 
+	fmt.Print("  > @grisu48 - https://github.com/grisu48\n")
+	fmt.Print("      + Help with updating very old dependencies.\n")
+	fmt.Println()
+
 	fmt.Print("  > @danirod - https://github.com/danirod\n")
 	fmt.Print("  > @Xpktro - https://github.com/Xpktro\n")
 	fmt.Print("      + Moral support.\n")
