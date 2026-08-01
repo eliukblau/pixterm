@@ -2,7 +2,7 @@
    ___  _____  ____
   / _ \/  _/ |/_/ /____ ______ _      Made with love by Eliuk Blau
  / ___// /_>  </ __/ -_) __/  ' \ https://github.com/eliukblau/pixterm
-/_/  /___/_/|_|\__/\__/_/ /_/_/_/                1.3.2
+/_/  /___/_/|_|\__/\__/_/ /_/_/_/                1.3.3
 
 ```
 
@@ -77,15 +77,29 @@ All dependencies are included via standard [Go module system](https://blog.golan
 
 #### Installation
 
-*You need the [Go compiler](https://golang.org) version 1.20 or superior installed in your system.*
+*You need the [Go compiler](https://golang.org) version 1.25 or higher installed in your system.*
 
 Run this command to automatically download sources and install **`PIXterm`** binary in your `$GOPATH/bin` (or `$GOBIN`) directory:
 
-`go get -u github.com/eliukblau/pixterm/cmd/pixterm`
+`go install github.com/eliukblau/pixterm/cmd/pixterm@latest`
 
-If you use Arch Linux, `eigengrau` has kindly created an AUR package for **`PIXterm`** (thanks man!). Run this command to install it:
+If you're using Arch Linux, `Fabius` has created an AUR package for **`PIXterm`**. Run this command to install it:
 
-`yaourt -S pixterm-git`
+`yaourt -S pixterm`
+
+The previous package called `pixterm-git`, kindly created by `eigengrau`, is now orphan. Do not use it.
+
+#### Local Running/Building
+
+If you have a local copy of this repo, you can run/build the `pixterm` CLI using the following commands in the repository root:
+
+```sh
+# run
+go run ./cmd/pixterm
+
+# build
+go build -o path/for/binary ./cmd/pixterm
+```
 
 #### About
 
@@ -124,3 +138,6 @@ If you use Arch Linux, `eigengrau` has kindly created an AUR package for **`PIXt
 - [@Calinou](https://github.com/Calinou)
   - Use HTTPS URLs everywhere.
   - Other awesome contributions.
+
+- [@grisu48](https://github.com/grisu48)
+  - Help with updating very old dependencies.
